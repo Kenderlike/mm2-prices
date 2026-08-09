@@ -4,16 +4,16 @@
 - Запасной путь: undetected_chromedriver (настоящий невидимый Chrome) — если первый сломался.
 - Категории объединены из обоих скриптов: все /mm2/<category> страницы сайта.
 - Парсит ВСЕ скины, включая со стоимостью 0.
-- Untradable определяется по тексту на карточке скина, а не по категории.
+- Untradable предметы записываются со значением "untradable".
 - Суффиксы в скобках типа (Knife), (Gun), (Pet) и т.п. вырезаются из названий.
-- Цена: если число — округляется, если текст (напр. "x2 T1 Rares") — сохраняется как есть.
 
-Результат: prices.json  =  {"Название": число_или_строка, ...}
+Результат: prices.json  =  {"Название": цена_или_"untradable", ...}
 """
 import json
 import random
 import re
 import time
+from decimal import Decimal, InvalidOperation
 from datetime import datetime, timezone
 from pathlib import Path
 
@@ -31,6 +31,7 @@ META_PATH = HERE / "meta.json"
 
 BASE_PREFIX = "https://supremevalues.com/mm2/"
 
+# Все категории сайта.
 CATEGORIES = [
     "godlies", "ancients", "chromas", "vintages",
     "collectibles", "pets", "legendaries", "rares",
@@ -38,79 +39,72 @@ CATEGORIES = [
     "misc", "untradables",
 ]
 
+# Категории, предметы которых помечаются как untradable.
+UNTRADABLE_CATEGORIES = {"untradables"}
+
 MIN_ITEMS_SANITY = 100
 MIN_CATEGORIES_SANITY = 5
 DELAY_MIN_SECONDS = 3
 DELAY_MAX_SECONDS = 6
 
-# Убирает суффиксы в скобках в конце названия: 'Dark Matter (Knife)' -> 'Dark Matter'
+# Суффиксы в скобках, которые нужно вырезать из названий.
+# Регулярка убирает любой текст в круглых скобках в конце названия.
 _SUFFIX_RE = re.compile(r'\s*\([^)]*\)\s*$', re.IGNORECASE)
 
 
 def clean_name(name: str) -> str:
+    """Убирает суффиксы в скобках из конца названия: 'Dark Matter (Knife)' -> 'Dark Matter'."""
     return _SUFFIX_RE.sub("", name).strip()
 
 
-def parse_value(text):
-    """Разбирает значение цены из строки value на сайте:
-    - Если текст является числом — округляет до ближайшего целого.
-    - Если текст — каша вроде 'x2 T1 Rares' — возвращает 1.
-    - Если текст пустой или None — возвращает None (поле не найдено).
-    """
+def parse_num(text, default=0):
+    """Разбирает цену, сохраняя дробную часть и разделители."""
     if text is None:
-        return None
-    text = text.strip()
-    if not text:
-        return None
-
-    # Текст является чистым числом (цифры, пробелы, точки, запятые)
-    if re.fullmatch(r'[\d\s.,]+', text):
-        try:
-            return round(float(re.sub(r'[^\d.]', '', text)))
-        except ValueError:
-            pass
-
-    # Любой другой нечисловой текст (x2 T1 Rares, etc.) → цена 1
-    return 1
-
-
-def _extract_value_from_col(col):
-    """Ищет значение цены внутри карточки .itemcolumn.
-
-    Логика:
-    - Если найден элемент с классом *value* или атрибут data-value — парсим цену.
-    - Если поле value отсутствует ВООБЩЕ — предмет untradable.
-    """
-    # Атрибут data-value
-    raw = col.get("data-value")
-    if raw is not None:
-        val = parse_value(raw)
-        if val is not None:
-            return val
-
-    # Элемент с классом *value*
-    value_el = col.select_one('[class*="value"]')
-    if value_el:
-        val = parse_value(value_el.get_text(strip=True))
-        if val is not None:
-            return val
-
-    # Поля value нет вообще — предмет untradable
-    return "untradable"
+        return default
+    raw = re.sub(r"[^\d,.+\-]", "", str(text).strip())
+    if not raw or raw in ("+", "-", ".", ","):
+        return default
+    if "," in raw and "." not in raw:
+        raw = raw.replace(",", ".")
+    elif "," in raw and "." in raw:
+        raw = raw.replace(",", "")
+    try:
+        value = Decimal(raw)
+    except InvalidOperation:
+        return default
+    return int(value) if value == value.to_integral_value() else float(value)
 
 
-def _parse_col(col):
+def is_untradable(col):
+    text = (col.get_text(" ", strip=True) + " " + " ".join(map(str, col.attrs.values()))).lower()
+    return bool(re.search(r"\buntrad(?:eable|able)\b|\bnot\s+trad(?:eable|able)\b", text))
+
+
+def extract_price(col):
+    for attr in ("data-value", "data-price", "data-rap"):
+        if col.get(attr) is not None:
+            value = parse_num(col[attr], default=None)
+            if value is not None:
+                return value
+    for element in col.select('[class*="value"], [class*="price"], [data-value], [data-price]'):
+        value = parse_num(element.get("data-value") or element.get("data-price") or element.get_text(" ", strip=True), default=None)
+        if value is not None:
+            return value
+    return 0
+
+
+# ---------- Быстрый путь: curl_cffi (обход Incapsula/Cloudflare) ----------
+
+def _parse_col(col, untradable=False):
     name_el = col.select_one(".itemhead")
-    name = name_el.get_text(strip=True) if name_el else None
+    name = name_el.get_text(" ", strip=True) if name_el else None
     if not name:
         return None
-
     name = clean_name(name)
-    value = _extract_value_from_col(col)
-    return {"name": name, "value": value}
+    if is_untradable(col):
+        return {"name": name, "value": "untradable"}
+    return {"name": name, "value": extract_price(col)}
 
-
-# ---------- Быстрый путь: curl_cffi ----------
 
 def scrape_fast():
     """curl_cffi: обходит anti-bot по TLS-отпечатку. Возвращает список {name, value}."""
@@ -124,6 +118,7 @@ def scrape_fast():
             if i > 0:
                 time.sleep(random.uniform(DELAY_MIN_SECONDS, DELAY_MAX_SECONDS))
             url = f"{BASE_PREFIX}{category}"
+            untradable = category in UNTRADABLE_CATEGORIES
             try:
                 resp = session.get(url, impersonate="chrome", timeout=30)
                 resp.raise_for_status()
@@ -134,7 +129,7 @@ def scrape_fast():
             soup = BeautifulSoup(resp.text, "lxml")
             count = 0
             for col in soup.select(".itemcolumn"):
-                item = _parse_col(col)
+                item = _parse_col(col, untradable=untradable)
                 if item:
                     items.append(item)
                     count += 1
@@ -148,10 +143,9 @@ def scrape_fast():
     return items
 
 
-# ---------- Запасной путь: undetected_chromedriver ----------
-
+# ---------- Запасной путь: undetected_chromedriver (настоящий браузер) ----------
 def scrape_browser():
-    """Невидимый Chrome переживает проверку на бота."""
+    """Та же идея: невидимый Chrome переживает проверку на бота."""
     try:
         import undetected_chromedriver as uc
     except ImportError:
@@ -169,13 +163,14 @@ def scrape_browser():
         driver = uc.Chrome(options=options)
         for category in CATEGORIES:
             url = f"{BASE_PREFIX}{category}"
+            untradable = category in UNTRADABLE_CATEGORIES
             print(f"[browser] парсим: {url}")
             driver.get(url)
-            time.sleep(5)
+            time.sleep(5)  # ждём прогрузку и проверку на бота
 
             soup = BeautifulSoup(driver.page_source, "html.parser")
             for col in soup.select(".itemcolumn"):
-                item = _parse_col(col)
+                item = _parse_col(col, untradable=untradable)
                 if item:
                     items.append(item)
     except Exception as exc:
@@ -188,24 +183,6 @@ def scrape_browser():
         print(f"[browser] мало данных: {len(items)} — браузерный путь не сработал")
         return []
     return items
-
-
-def debug_html():
-    """Сохраняет сырой HTML первых 5 карточек из godlies для отладки."""
-    if not HAS_CURL:
-        print("[debug] curl_cffi не установлен")
-        return
-    with cf_requests.Session() as session:
-        resp = session.get(f"{BASE_PREFIX}godlies", impersonate="chrome", timeout=30)
-        soup = BeautifulSoup(resp.text, "lxml")
-        cols = soup.select(".itemcolumn")
-        print(f"[debug] найдено .itemcolumn: {len(cols)}")
-        debug_path = HERE / "debug_cards.html"
-        with open(debug_path, "w", encoding="utf-8") as f:
-            for i, col in enumerate(cols[:5]):
-                f.write(f"\n\n<!-- === CARD {i} === -->\n")
-                f.write(str(col.prettify()))
-        print(f"[debug] первые 5 карточек сохранены в {debug_path}")
 
 
 def main():
@@ -229,5 +206,4 @@ def main():
 
 
 if __name__ == "__main__":
-    debug_html()  # временно: смотрим структуру HTML
-    # main()
+    main()

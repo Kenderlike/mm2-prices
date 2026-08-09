@@ -2,7 +2,6 @@ name: Auto Update Prices
 
 on:
   schedule:
-    # Запуск каждый день в 00:00 (по UTC)
     - cron: '0 0 * * *'
   workflow_dispatch:
 
@@ -19,17 +18,11 @@ jobs:
         with:
           python-version: '3.10'
           
-      - name: Install Chrome and Xvfb
-        run: |
-          sudo apt-get update
-          sudo apt-get install -y google-chrome-stable xvfb
-          
-      - name: Install Python packages
-        run: pip install undetected-chromedriver beautifulsoup4
+      - name: Install dependencies
+        run: pip install curl_cffi beautifulsoup4 lxml
         
       - name: Run Parser
-        # Запускаем виртуальный монитор, чтобы браузер думал, что у него есть экран
-        run: xvfb-run python auto_parser.py
+        run: python auto_parser.py
         
       - name: Commit and Push
         run: |

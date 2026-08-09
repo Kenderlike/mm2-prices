@@ -4,10 +4,11 @@
 - Запасной путь: undetected_chromedriver (настоящий невидимый Chrome) — если первый сломался.
 - Категории объединены из обоих скриптов: все /mm2/<category> страницы сайта.
 - Парсит ВСЕ скины, включая со стоимостью 0.
-- Untradable предметы записываются со значением "untradable".
+- Untradable определяется по тексту на карточке скина, а не по категории.
 - Суффиксы в скобках типа (Knife), (Gun), (Pet) и т.п. вырезаются из названий.
+- Цена: если число — округляется, если текст (напр. "x2 T1 Rares") — сохраняется как есть.
 
-Результат: prices.json  =  {"Название": цена_или_"untradable", ...}
+Результат: prices.json  =  {"Название": число_или_строка, ...}
 """
 import json
 import random
@@ -30,7 +31,6 @@ META_PATH = HERE / "meta.json"
 
 BASE_PREFIX = "https://supremevalues.com/mm2/"
 
-# Все категории сайта.
 CATEGORIES = [
     "godlies", "ancients", "chromas", "vintages",
     "collectibles", "pets", "legendaries", "rares",
@@ -38,69 +38,90 @@ CATEGORIES = [
     "misc", "untradables",
 ]
 
-# Категории, предметы которых помечаются как untradable.
-UNTRADABLE_CATEGORIES = {"untradables"}
-
 MIN_ITEMS_SANITY = 100
 MIN_CATEGORIES_SANITY = 5
 DELAY_MIN_SECONDS = 3
 DELAY_MAX_SECONDS = 6
 
-# Суффиксы в скобках, которые нужно вырезать из названий.
-# Регулярка убирает любой текст в круглых скобках в конце названия.
+# Убирает суффиксы в скобках в конце названия: 'Dark Matter (Knife)' -> 'Dark Matter'
 _SUFFIX_RE = re.compile(r'\s*\([^)]*\)\s*$', re.IGNORECASE)
 
 
 def clean_name(name: str) -> str:
-    """Убирает суффиксы в скобках из конца названия: 'Dark Matter (Knife)' -> 'Dark Matter'."""
     return _SUFFIX_RE.sub("", name).strip()
 
 
-def parse_num(text, default=0):
-    """Разбирает число из текста; сохраняет десятичные (напр. 0.002 вместо 0)."""
+def parse_value(text):
+    """Разбирает значение цены:
+    - Если текст содержит 'untradable' — возвращает строку 'untradable'.
+    - Если текст является числом — округляет по правилам математики и возвращает int.
+    - Иначе — возвращает сырой текст как есть (напр. 'x2 T1 Rares').
+    - Если текст пустой или None — возвращает 0.
+    """
     if text is None:
-        return default
-    cleaned = re.sub(r"[^\d+\-.]", "", str(text))
-    if not cleaned or cleaned in ("+", "-", "."):
-        return default
-    try:
-        num = float(cleaned)
-    except ValueError:
-        return default
-    return int(num) if num == int(num) else num
+        return 0
+    text = text.strip()
+    if not text:
+        return 0
+
+    # Проверяем untradable прямо в тексте
+    if "untradable" in text.lower():
+        return "untradable"
+
+    # Пробуем распарсить как число (убираем всё кроме цифр, точки, минуса)
+    cleaned = re.sub(r"[^\d.\-]", "", text)
+    if cleaned and cleaned not in (".", "-"):
+        try:
+            num = float(cleaned)
+            return round(int(num) if num == int(num) else num)
+        except ValueError:
+            pass
+
+    # Иначе возвращаем сырой текст
+    return text
 
 
-# ---------- Быстрый путь: curl_cffi (обход Incapsula/Cloudflare) ----------
+def _extract_value_from_col(col):
+    """Ищет значение цены внутри карточки .itemcolumn.
 
-def _parse_col(col, untradable=False):
+    Приоритеты:
+    1. Атрибут data-value на самой карточке.
+    2. Элемент с классом содержащим 'value' внутри карточки.
+    3. Плашка untradable (зелёный бейдж с текстом 'untradable').
+    """
+    # Сначала проверяем наличие untradable-бейджа в карточке
+    # Сайт использует разные варианты: класс, текст внутри span/div
+    for el in col.find_all(True):
+        el_text = el.get_text(strip=True).lower()
+        el_classes = " ".join(el.get("class", []))
+        if "untradable" in el_text or "untradable" in el_classes.lower():
+            return "untradable"
+
+    # Атрибут data-value
+    raw = col.get("data-value")
+    if raw is not None:
+        return parse_value(raw)
+
+    # Элемент с классом *value*
+    value_el = col.select_one('[class*="value"]')
+    if value_el:
+        return parse_value(value_el.get_text(strip=True))
+
+    return 0
+
+
+def _parse_col(col):
     name_el = col.select_one(".itemhead")
     name = name_el.get_text(strip=True) if name_el else None
     if not name:
         return None
 
     name = clean_name(name)
-
-    if untradable:
-        return {"name": name, "value": "untradable"}
-
-    # основный источник цены — атрибут data-value (точный, с десятичными)
-    value = col.get("data-value")
-    value = parse_num(value, default=None) if value is not None else None
-
-    # запасной путь — ищем любой элемент class*="value" рядом с названием
-    if value is None:
-        parent = name_el.parent
-        value_el = parent.select_one('[class*="value"]') if parent else None
-        if not value_el and parent and parent.parent:
-            value_el = parent.parent.select_one('[class*="value"]')
-        value = parse_num(value_el.get_text(strip=True) if value_el else None, default=None)
-
-    # если цена не нашлась вообще — записываем 0
-    if value is None:
-        value = 0
-
+    value = _extract_value_from_col(col)
     return {"name": name, "value": value}
 
+
+# ---------- Быстрый путь: curl_cffi ----------
 
 def scrape_fast():
     """curl_cffi: обходит anti-bot по TLS-отпечатку. Возвращает список {name, value}."""
@@ -114,7 +135,6 @@ def scrape_fast():
             if i > 0:
                 time.sleep(random.uniform(DELAY_MIN_SECONDS, DELAY_MAX_SECONDS))
             url = f"{BASE_PREFIX}{category}"
-            untradable = category in UNTRADABLE_CATEGORIES
             try:
                 resp = session.get(url, impersonate="chrome", timeout=30)
                 resp.raise_for_status()
@@ -125,7 +145,7 @@ def scrape_fast():
             soup = BeautifulSoup(resp.text, "lxml")
             count = 0
             for col in soup.select(".itemcolumn"):
-                item = _parse_col(col, untradable=untradable)
+                item = _parse_col(col)
                 if item:
                     items.append(item)
                     count += 1
@@ -139,9 +159,10 @@ def scrape_fast():
     return items
 
 
-# ---------- Запасной путь: undetected_chromedriver (настоящий браузер) ----------
+# ---------- Запасной путь: undetected_chromedriver ----------
+
 def scrape_browser():
-    """Та же идея: невидимый Chrome переживает проверку на бота."""
+    """Невидимый Chrome переживает проверку на бота."""
     try:
         import undetected_chromedriver as uc
     except ImportError:
@@ -159,29 +180,15 @@ def scrape_browser():
         driver = uc.Chrome(options=options)
         for category in CATEGORIES:
             url = f"{BASE_PREFIX}{category}"
-            untradable = category in UNTRADABLE_CATEGORIES
             print(f"[browser] парсим: {url}")
             driver.get(url)
-            time.sleep(5)  # ждём прогрузку и проверку на бота
+            time.sleep(5)
 
             soup = BeautifulSoup(driver.page_source, "html.parser")
-            for header in soup.find_all(class_="itemhead"):
-                name = clean_name(header.get_text(strip=True))
-                if not name:
-                    continue
-
-                if untradable:
-                    items.append({"name": name, "value": "untradable"})
-                    continue
-
-                parent = header.parent
-                value_el = None
-                if parent:
-                    value_el = parent.select_one('[class*="value"]')
-                    if not value_el and parent.parent:
-                        value_el = parent.parent.select_one('[class*="value"]')
-                value = parse_num(value_el.get_text() if value_el else None, default=0)
-                items.append({"name": name, "value": value})
+            for col in soup.select(".itemcolumn"):
+                item = _parse_col(col)
+                if item:
+                    items.append(item)
     except Exception as exc:
         print(f"[browser] ошибка: {exc}")
     finally:

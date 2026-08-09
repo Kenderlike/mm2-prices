@@ -1,26 +1,39 @@
-name: Update Prices
+name: Auto Update Prices
 
 on:
   schedule:
-    - cron: '0 */6 * * *'
+    # Запуск каждый день в 00:00 (по UTC)
+    - cron: '0 0 * * *'
   workflow_dispatch:
 
 jobs:
-  build:
+  update-prices:
     runs-on: ubuntu-latest
     permissions:
       contents: write
     steps:
       - uses: actions/checkout@v4
+      
       - name: Set up Python
         uses: actions/setup-python@v5
         with:
           python-version: '3.10'
-      - name: Run parser
-        run: python parser.py
-      - name: Commit and push if changes
+          
+      - name: Install Chrome and Xvfb
         run: |
-          git config --global user.name 'Bot'
-          git config --global user.email 'bot@bot.com'
+          sudo apt-get update
+          sudo apt-get install -y google-chrome-stable xvfb
+          
+      - name: Install Python packages
+        run: pip install undetected-chromedriver beautifulsoup4
+        
+      - name: Run Parser
+        # Запускаем виртуальный монитор, чтобы браузер думал, что у него есть экран
+        run: xvfb-run python auto_parser.py
+        
+      - name: Commit and Push
+        run: |
+          git config --global user.name 'GitHub Action Bot'
+          git config --global user.email 'action@github.com'
           git add prices.json
-          git diff --quiet && git diff --staged --quiet || (git commit -m "Auto-update prices" && git push)
+          git diff --quiet && git diff --staged --quiet || (git commit -m "Auto-update MM2 prices" && git push)

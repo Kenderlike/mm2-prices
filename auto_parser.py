@@ -52,10 +52,10 @@ def clean_name(name: str) -> str:
 
 
 def parse_value(text):
-    """Разбирает значение цены:
-    - Если текст является числом — округляет до ближайшего целого и возвращает int.
-    - Иначе — возвращает сырой текст как есть (напр. 'x2 T1 Rares').
-    - Если текст пустой или None — возвращает None (означает: значение не найдено).
+    """Разбирает значение цены из строки value на сайте:
+    - Если текст является числом — округляет до ближайшего целого.
+    - Если текст — каша вроде 'x2 T1 Rares' — возвращает 1.
+    - Если текст пустой или None — возвращает None (поле не найдено).
     """
     if text is None:
         return None
@@ -63,30 +63,23 @@ def parse_value(text):
     if not text:
         return None
 
-    # Пробуем распарсить как число — извлекаем только цифры и точку
-    # Но только если весь текст похож на число (не "x2 T1 Rares")
-    cleaned = re.sub(r"[^\d.]", "", text)
-    if cleaned and cleaned != ".":
+    # Текст является чистым числом (цифры, пробелы, точки, запятые)
+    if re.fullmatch(r'[\d\s.,]+', text):
         try:
-            num = float(cleaned)
-            # Проверяем что оригинальный текст действительно был числом,
-            # а не строкой вроде "x2" где тоже есть цифры
-            if re.fullmatch(r'[\d\s.,]+', text):
-                return round(num)
+            return round(float(re.sub(r'[^\d.]', '', text)))
         except ValueError:
             pass
 
-    # Возвращаем сырой текст как есть
-    return text
+    # Любой другой нечисловой текст (x2 T1 Rares, etc.) → цена 1
+    return 1
 
 
 def _extract_value_from_col(col):
     """Ищет значение цены внутри карточки .itemcolumn.
 
-    Приоритеты:
-    1. Атрибут data-value на самой карточке.
-    2. Элемент с классом содержащим 'value' внутри карточки.
-    3. Если значение не найдено вообще — untradable.
+    Логика:
+    - Если найден элемент с классом *value* или атрибут data-value — парсим цену.
+    - Если поле value отсутствует ВООБЩЕ — предмет untradable.
     """
     # Атрибут data-value
     raw = col.get("data-value")
@@ -102,7 +95,7 @@ def _extract_value_from_col(col):
         if val is not None:
             return val
 
-    # Нет поля value вообще — предмет untradable
+    # Поля value нет вообще — предмет untradable
     return "untradable"
 
 

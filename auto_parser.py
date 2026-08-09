@@ -229,5 +229,5 @@ def main():
 
 
 if __name__ == "__main__":
-    debug_html()  # временно: смотрим структуру HTML
-    # main()
+    # debug_html()
+    main()

@@ -70,8 +70,8 @@ def parse_value(text):
         except ValueError:
             pass
 
-    # Любой другой нечисловой текст (x2 T1 Rares, etc.) → цена 0
-    return 0
+    # Любой другой нечисловой текст (x2 T1 Rares, etc.) → цена 1
+    return 1
 
 
 def _extract_value_from_col(col):

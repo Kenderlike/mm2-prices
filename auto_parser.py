@@ -190,6 +190,24 @@ def scrape_browser():
     return items
 
 
+def debug_html():
+    """Сохраняет сырой HTML первых 5 карточек из godlies для отладки."""
+    if not HAS_CURL:
+        print("[debug] curl_cffi не установлен")
+        return
+    with cf_requests.Session() as session:
+        resp = session.get(f"{BASE_PREFIX}godlies", impersonate="chrome", timeout=30)
+        soup = BeautifulSoup(resp.text, "lxml")
+        cols = soup.select(".itemcolumn")
+        print(f"[debug] найдено .itemcolumn: {len(cols)}")
+        debug_path = HERE / "debug_cards.html"
+        with open(debug_path, "w", encoding="utf-8") as f:
+            for i, col in enumerate(cols[:5]):
+                f.write(f"\n\n<!-- === CARD {i} === -->\n")
+                f.write(str(col.prettify()))
+        print(f"[debug] первые 5 карточек сохранены в {debug_path}")
+
+
 def main():
     prices = {}
 
@@ -211,4 +229,5 @@ def main():
 
 
 if __name__ == "__main__":
-    main()
+    debug_html()  # временно: смотрим структуру HTML
+    # main()

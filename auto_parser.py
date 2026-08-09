@@ -53,31 +53,30 @@ def clean_name(name: str) -> str:
 
 def parse_value(text):
     """Разбирает значение цены:
-    - Если текст содержит 'untradable' — возвращает строку 'untradable'.
-    - Если текст является числом — округляет по правилам математики и возвращает int.
+    - Если текст является числом — округляет до ближайшего целого и возвращает int.
     - Иначе — возвращает сырой текст как есть (напр. 'x2 T1 Rares').
-    - Если текст пустой или None — возвращает 0.
+    - Если текст пустой или None — возвращает None (означает: значение не найдено).
     """
     if text is None:
-        return 0
+        return None
     text = text.strip()
     if not text:
-        return 0
+        return None
 
-    # Проверяем untradable прямо в тексте
-    if "untradable" in text.lower():
-        return "untradable"
-
-    # Пробуем распарсить как число (убираем всё кроме цифр, точки, минуса)
-    cleaned = re.sub(r"[^\d.\-]", "", text)
-    if cleaned and cleaned not in (".", "-"):
+    # Пробуем распарсить как число — извлекаем только цифры и точку
+    # Но только если весь текст похож на число (не "x2 T1 Rares")
+    cleaned = re.sub(r"[^\d.]", "", text)
+    if cleaned and cleaned != ".":
         try:
             num = float(cleaned)
-            return round(int(num) if num == int(num) else num)
+            # Проверяем что оригинальный текст действительно был числом,
+            # а не строкой вроде "x2" где тоже есть цифры
+            if re.fullmatch(r'[\d\s.,]+', text):
+                return round(num)
         except ValueError:
             pass
 
-    # Иначе возвращаем сырой текст
+    # Возвращаем сырой текст как есть
     return text
 
 
@@ -87,27 +86,24 @@ def _extract_value_from_col(col):
     Приоритеты:
     1. Атрибут data-value на самой карточке.
     2. Элемент с классом содержащим 'value' внутри карточки.
-    3. Плашка untradable (зелёный бейдж с текстом 'untradable').
+    3. Если значение не найдено вообще — untradable.
     """
-    # Сначала проверяем наличие untradable-бейджа в карточке
-    # Сайт использует разные варианты: класс, текст внутри span/div
-    for el in col.find_all(True):
-        el_text = el.get_text(strip=True).lower()
-        el_classes = " ".join(el.get("class", []))
-        if "untradable" in el_text or "untradable" in el_classes.lower():
-            return "untradable"
-
     # Атрибут data-value
     raw = col.get("data-value")
     if raw is not None:
-        return parse_value(raw)
+        val = parse_value(raw)
+        if val is not None:
+            return val
 
     # Элемент с классом *value*
     value_el = col.select_one('[class*="value"]')
     if value_el:
-        return parse_value(value_el.get_text(strip=True))
+        val = parse_value(value_el.get_text(strip=True))
+        if val is not None:
+            return val
 
-    return 0
+    # Нет поля value вообще — предмет untradable
+    return "untradable"
 
 
 def _parse_col(col):

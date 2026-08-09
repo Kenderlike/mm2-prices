@@ -3,14 +3,18 @@ import time
 import undetected_chromedriver as uc
 from bs4 import BeautifulSoup
 
-# Ссылки на все основные категории сайта
+# Ссылки на абсолютно ВСЕ категории сайта
 CATEGORIES = [
     "https://supremevalues.com/godlies",
     "https://supremevalues.com/ancients",
     "https://supremevalues.com/chromas",
     "https://supremevalues.com/vintages",
     "https://supremevalues.com/collectibles",
-    "https://supremevalues.com/pets"
+    "https://supremevalues.com/pets",
+    "https://supremevalues.com/legendaries",
+    "https://supremevalues.com/rares",
+    "https://supremevalues.com/uncommons",
+    "https://supremevalues.com/commons"
 ]
 
 # Сюда вписывай мусорные скины, которых нет на сайте.

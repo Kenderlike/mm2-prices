@@ -260,15 +260,17 @@ def empty_result():
 def add_leaf(container, name, value, category=None):
     """Добавляет предмет в контейнер с учётом категории редкости.
 
-    Если предмета с таким именем нет — создаёт простую запись (число/строка).
+    Если предмета с таким именем нет — создаёт простую запись только со значением.
     Если предмет уже есть — преобразует в словарь {category: value} для поддержки дубликатов.
     """
     if name not in container:
-        # Первое вхождение — сохраняем как есть (может быть число или строка)
+        # Первое вхождение — сохраняем ТОЛЬКО значение (не структуру)
+        # Но запоминаем категорию во временном атрибуте для потенциального преобразования
+        container[name] = value
+        # Сохраняем метаданные о первой категории в специальном ключе
         if category:
-            container[name] = {category: value}
-        else:
-            container[name] = value
+            # Создаём временный маркер для отслеживания первой категории
+            container[f"_meta_{name}_first_category"] = category
         return
 
     existing = container[name]
@@ -278,19 +280,29 @@ def add_leaf(container, name, value, category=None):
         if category and category not in existing:
             existing[category] = value
         elif category:
-            # Категория уже есть — игнорируем или перезаписываем
+            # Категория уже есть — перезаписываем (обновление цены)
             existing[category] = value
         return
 
     # Если было простое значение, а пришёл дубликат — превращаем в словарь
-    if category:
-        container[name] = {"unknown": existing, category: value}
-    else:
-        # Оба без категории — нумеруем (старая логика)
+    # Извлекаем первую категорию из метаданных
+    first_category = container.pop(f"_meta_{name}_first_category", "unknown")
+
+    # Создаём структуру с обеими категориями
+    container[name] = {
+        first_category: existing,  # Старое значение с его категорией
+        category: value if category else existing  # Новое значение
+    }
+
+    # Если новая категория не указана, не добавляем дубликат
+    if not category:
+        # Оба без категории — нумеруем (старая логика, редкий случай)
         base, n = name, 2
         while f"{base} ({n})" in container:
             n += 1
         container[f"{base} ({n})"] = value
+        # Восстанавливаем оригинал
+        container[name] = existing
 
 
 def add_item(result, item):
@@ -306,7 +318,20 @@ def add_item(result, item):
         add_leaf(result["Прочее"], name, item["value"], category)
 
 
+def clean_metadata(container):
+    """Удаляет временные метаданные (ключи _meta_*) из контейнера."""
+    keys_to_remove = [key for key in container.keys() if key.startswith("_meta_")]
+    for key in keys_to_remove:
+        del container[key]
+
+
 def count_result(result):
+    """Подсчитывает количество уникальных предметов (не категорий внутри них)."""
+    # Очищаем метаданные перед подсчётом
+    clean_metadata(result["Оружие"]["Ножи"])
+    clean_metadata(result["Оружие"]["Пистолеты"])
+    clean_metadata(result["Прочее"])
+
     return (len(result["Оружие"]["Ножи"]) + len(result["Оружие"]["Пистолеты"])
             + len(result["Прочее"]))
 

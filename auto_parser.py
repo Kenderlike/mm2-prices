@@ -213,7 +213,7 @@ def is_untradable(col):
     return bool(UNTRADABLE_RE.search(text))
 
 
-def _parse_col(col, untradable=False):
+def _parse_col(col, untradable=False, category=None):
     name_el = col.select_one(".itemhead")
     raw_name = name_el.get_text(" ", strip=True) if name_el else None
     if not raw_name:
@@ -250,35 +250,60 @@ def _parse_col(col, untradable=False):
         if value is None:
             value = "untradable"  # строки "Value - ..." на карточке нет
 
-    return {"name": name, "value": value, "type": weapon_type}
+    return {"name": name, "value": value, "type": weapon_type, "category": category}
 
 
 def empty_result():
     return {"Оружие": {"Ножи": {}, "Пистолеты": {}}, "Прочее": {}}
 
 
-def add_leaf(container, name, value):
+def add_leaf(container, name, value, category=None):
+    """Добавляет предмет в контейнер с учётом категории редкости.
+
+    Если предмета с таким именем нет — создаёт простую запись (число/строка).
+    Если предмет уже есть — преобразует в словарь {category: value} для поддержки дубликатов.
+    """
     if name not in container:
-        container[name] = value
+        # Первое вхождение — сохраняем как есть (может быть число или строка)
+        if category:
+            container[name] = {category: value}
+        else:
+            container[name] = value
         return
-    if container[name] == value:
+
+    existing = container[name]
+
+    # Если уже словарь (дубликат имени) — добавляем новую категорию
+    if isinstance(existing, dict):
+        if category and category not in existing:
+            existing[category] = value
+        elif category:
+            # Категория уже есть — игнорируем или перезаписываем
+            existing[category] = value
         return
-    base, n = name, 2
-    while f"{base} ({n})" in container:
-        n += 1
-    container[f"{base} ({n})"] = value
+
+    # Если было простое значение, а пришёл дубликат — превращаем в словарь
+    if category:
+        container[name] = {"unknown": existing, category: value}
+    else:
+        # Оба без категории — нумеруем (старая логика)
+        base, n = name, 2
+        while f"{base} ({n})" in container:
+            n += 1
+        container[f"{base} ({n})"] = value
 
 
 def add_item(result, item):
     name = item.get("name")
     if not name:
         return
+    category = item.get("category")
     if item.get("type") == "knife":
-        add_leaf(result["Оружие"]["Ножи"], name, item["value"])
+        add_leaf(result["Оружие"]["Ножи"], name, item["value"], category)
     elif item.get("type") == "gun":
-        add_leaf(result["Оружие"]["Пистолеты"], name, item["value"])
+        add_leaf(result["Оружие"]["Пистолеты"], name, item["value"], category)
     else:
-        add_leaf(result["Прочее"], name, item["value"])
+        add_leaf(result["Прочее"], name, item["value"], category)
 
 
 def count_result(result):
@@ -309,7 +334,7 @@ def scrape_fast():
             soup = make_soup(resp.text)
             count = 0
             for col in soup.select(".itemcolumn"):
-                item = _parse_col(col, untradable=untradable)
+                item = _parse_col(col, untradable=untradable, category=category)
                 if item:
                     items.append(item)
                     count += 1
@@ -354,7 +379,7 @@ def scrape_browser():
                 continue
             count = 0
             for col in soup.select(".itemcolumn"):
-                item = _parse_col(col, untradable=untradable)
+                item = _parse_col(col, untradable=untradable, category=category)
                 if item:
                     items.append(item)
                     count += 1

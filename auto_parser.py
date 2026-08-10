@@ -174,7 +174,8 @@ def detect_weapon_from_col(col):
 
 def extract_value(col):
     """Возвращает строку значения КАК НА САЙТЕ: 'x4 T1 Legendaries'.
-    Если строки 'Value - ...' на карточке нет — возвращает None."""
+    Если строки 'Value - ...' на карточке нет — возвращает None.
+    Числа конвертируются: "140" -> 140, "5,600" -> 5600."""
     lines = [ln.strip() for ln in col.get_text("\n").splitlines()]
     for idx, line in enumerate(lines):
         m = VALUE_PREFIX_RE.match(line)
@@ -189,7 +190,17 @@ def extract_value(col):
         # на всякий случай отрезаем хвост "Stability - ...", если всё в одной строке
         rest = STABILITY_SPLIT_RE.split(rest, maxsplit=1)[0].strip()
         rest = " ".join(rest.split())
-        return rest or None
+
+        # Пробуем конвертировать в число: "140" -> 140, "5,600" -> 5600
+        if rest:
+            try:
+                # Убираем запятые (если это число формата "5,600")
+                num_candidate = rest.replace(",", "")
+                return int(num_candidate)
+            except ValueError:
+                # Если не число — возвращаем как есть (строка "x4 T1 Legendaries" или "untradable")
+                return rest
+        return None
     return None
 
 

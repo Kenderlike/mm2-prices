@@ -73,6 +73,11 @@ UNTRADABLE_RE = re.compile(r"\buntrad(?:eable|able)\b|\bnot\s+trad(?:eable|able)
 # ---------- строка значения ----------
 VALUE_PREFIX_RE = re.compile(r"^value\s*[-–—:]\s*", re.IGNORECASE)
 STABILITY_SPLIT_RE = re.compile(r"\s+stability\b", re.IGNORECASE)
+# Удаление слов редкости из значений
+RARITY_WORDS_RE = re.compile(
+    r"\b(legendaries|legendary|rares|rare|uncommons|uncommon|commons|common)\b",
+    re.IGNORECASE
+)
 
 
 def make_soup(markup):
@@ -177,7 +182,8 @@ def detect_weapon_from_col(col):
 
 def extract_value(col):
     """Возвращает строку значения КАК НА САЙТЕ ('x3 T1 Rares').
-    Никаких data-value! Если строки 'Value - ...' нет — None."""
+    Никаких data-value! Если строки 'Value - ...' нет — None.
+    Удаляет слова редкости типа Legendaries, Rares, Uncommons, Commons."""
     lines = [ln.strip() for ln in col.get_text("\n").splitlines()]
     for idx, line in enumerate(lines):
         m = VALUE_PREFIX_RE.match(line)
@@ -191,7 +197,13 @@ def extract_value(col):
             rest = lines[idx + 1].strip()
         # если всё в одной строке — отрезаем хвост "Stability - ..."
         rest = STABILITY_SPLIT_RE.split(rest, maxsplit=1)[0].strip()
-        return " ".join(rest.split()) or None
+
+        # Удаляем слова редкости
+        rest = RARITY_WORDS_RE.sub("", rest).strip()
+        # Очищаем множественные пробелы
+        rest = " ".join(rest.split())
+
+        return rest or None
     return None
 
 

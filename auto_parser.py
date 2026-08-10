@@ -1,13 +1,15 @@
 """Парсер цен MM2 с supremevalues.com.
 
-Значение — ТОЧНО строка с карточки после "Value - ":
-    "Value - x4 T1 Legendaries"  ->  "x4 T1 Legendaries"
-Если строки "Value - ..." на карточке нет (или предмет untradable) —
-значение будет "untradable".
+Значение — ТОЧНО видимая строка с карточки после "Value - ":
+    "Value - x4 T1 Legendaries" -> "x4 T1 Legendaries"
+    "Value - x3 T1 Rares"       -> "x3 T1 Rares"
+    "Value - Priceless"         -> "Priceless"
+Скрытые data-value/data-price НЕ читаются — оттуда брались лишние числа (625, 0.6...).
+Если строки "Value - ..." нет или предмет не торгуется — значение "untradable".
 
 Названия: хвостовые Gun/Knife и суффиксы в скобках вырезаются;
 ножи и пистолеты хранятся раздельно, чтобы "Palms" не конфликтовал.
-aliases.txt — словарик-памятка замены сайтового имени на игровое.
+aliases.txt — словарик-памятка (регистр НЕ важен): Сайтовое имя = Игровое имя.
 
 Результат: prices.json =
 {
@@ -52,6 +54,7 @@ DELAY_MAX_SECONDS = 6
 
 DEFAULT_ALIASES = {"bioblade": "Bio Blade"}
 DEFAULT_ALIASES_FILE = """# Памятка исключений: Сайтовое имя = Игровое имя
+# Регистр НЕ важен: "battleaxe ii = Battleaxe II" сработает.
 # Строки с # игнорируются. Можно также писать "Сайтовое -> Игровое".
 Bioblade = Bio Blade
 """
@@ -173,34 +176,22 @@ def detect_weapon_from_col(col):
 
 
 def extract_value(col):
-    """Возвращает строку значения КАК НА САЙТЕ: 'x4 T1 Legendaries'.
-    Если строки 'Value - ...' на карточке нет — возвращает None.
-    Числа конвертируются: "140" -> 140, "5,600" -> 5600."""
+    """Возвращает строку значения КАК НА САЙТЕ ('x3 T1 Rares').
+    Никаких data-value! Если строки 'Value - ...' нет — None."""
     lines = [ln.strip() for ln in col.get_text("\n").splitlines()]
     for idx, line in enumerate(lines):
         m = VALUE_PREFIX_RE.match(line)
         if m:
             rest = line[m.end():].strip()
         elif line.lower() == "value":
-            rest = ""  # само значение на следующей строке
+            rest = ""  # значение на следующей строке
         else:
             continue
         if not rest and idx + 1 < len(lines):
             rest = lines[idx + 1].strip()
-        # на всякий случай отрезаем хвост "Stability - ...", если всё в одной строке
+        # если всё в одной строке — отрезаем хвост "Stability - ..."
         rest = STABILITY_SPLIT_RE.split(rest, maxsplit=1)[0].strip()
-        rest = " ".join(rest.split())
-
-        # Пробуем конвертировать в число: "140" -> 140, "5,600" -> 5600
-        if rest:
-            try:
-                # Убираем запятые (если это число формата "5,600")
-                num_candidate = rest.replace(",", "")
-                return int(num_candidate)
-            except ValueError:
-                # Если не число — возвращаем как есть (строка "x4 T1 Legendaries" или "untradable")
-                return rest
-        return None
+        return " ".join(rest.split()) or None
     return None
 
 

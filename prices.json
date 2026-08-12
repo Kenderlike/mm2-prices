@@ -1611,18 +1611,18 @@
             "common_2": "x3 T1",
             "common_3": "x3 T1"
         },
-        "Ghosty": {
+        "Bunny": {
             "unknown": "untradable",
-            "common": "3"
+            "common": "x4 T1"
         },
         "Snowman": {
             "unknown": "untradable",
             "uncommon": "x3 T1",
             "uncommon_2": "x2 T1"
         },
-        "Bunny": {
+        "Ghosty": {
             "unknown": "untradable",
-            "common": "x4 T1"
+            "common": "3"
         },
         "Beach": {
             "legendary": "35"

@@ -13,8 +13,7 @@ aliases.txt — словарик-памятка (регистр НЕ важен)
 
 Результат: prices.json =
 {
-    "Оружие": {"Ножи": {...}, "Пистолеты": {...}},
-    "Прочее": {...}
+    "Оружие": {"Ножи": {"Palms": {"rare": 2, "godly_chroma": 50}}, ...}
 }
 """
 import json
@@ -23,7 +22,6 @@ import re
 import time
 from datetime import datetime, timezone
 from pathlib import Path
-
 from bs4 import BeautifulSoup
 
 try:
@@ -46,6 +44,12 @@ CATEGORIES = [
     "misc", "untradables",
 ]
 UNTRADABLE_CATEGORIES = {"untradables"}
+
+RARITY_MAP = {
+    "commons": "common", "uncommons": "uncommon", "rares": "rare",
+    "legendaries": "legendary", "godlies": "godly_chroma", "chromas": "godly_chroma",
+    "vintages": "vintage", "ancients": "ancient_evo", "evos": "ancient_evo"
+}
 
 MIN_ITEMS_SANITY = 100
 MIN_CATEGORIES_SANITY = 5
@@ -73,7 +77,6 @@ UNTRADABLE_RE = re.compile(r"\buntrad(?:eable|able)\b|\bnot\s+trad(?:eable|able)
 # ---------- строка значения ----------
 VALUE_PREFIX_RE = re.compile(r"^value\s*[-–—:]\s*", re.IGNORECASE)
 STABILITY_SPLIT_RE = re.compile(r"\s+stability\b", re.IGNORECASE)
-# Удаление слов редкости из значений
 RARITY_WORDS_RE = re.compile(
     r"\b(legendaries|legendary|rares|rare|uncommons|uncommon|commons|common)\b",
     re.IGNORECASE
@@ -181,28 +184,20 @@ def detect_weapon_from_col(col):
 
 
 def extract_value(col):
-    """Возвращает строку значения КАК НА САЙТЕ ('x3 T1 Rares').
-    Никаких data-value! Если строки 'Value - ...' нет — None.
-    Удаляет слова редкости типа Legendaries, Rares, Uncommons, Commons."""
     lines = [ln.strip() for ln in col.get_text("\n").splitlines()]
     for idx, line in enumerate(lines):
         m = VALUE_PREFIX_RE.match(line)
         if m:
             rest = line[m.end():].strip()
         elif line.lower() == "value":
-            rest = ""  # значение на следующей строке
+            rest = ""
         else:
             continue
         if not rest and idx + 1 < len(lines):
             rest = lines[idx + 1].strip()
-        # если всё в одной строке — отрезаем хвост "Stability - ..."
         rest = STABILITY_SPLIT_RE.split(rest, maxsplit=1)[0].strip()
-
-        # Удаляем слова редкости
         rest = RARITY_WORDS_RE.sub("", rest).strip()
-        # Очищаем множественные пробелы
         rest = " ".join(rest.split())
-
         return rest or None
     return None
 
@@ -213,7 +208,7 @@ def is_untradable(col):
     return bool(UNTRADABLE_RE.search(text))
 
 
-def _parse_col(col, untradable=False, category=None):
+def _parse_col(col, untradable=False):
     name_el = col.select_one(".itemhead")
     raw_name = name_el.get_text(" ", strip=True) if name_el else None
     if not raw_name:
@@ -228,7 +223,7 @@ def _parse_col(col, untradable=False, category=None):
 
     name = remove_trailing_weapon_words(name_no_paren)
 
-    for candidate in (raw_name, name_no_paren, name):  # словарь исключений
+    for candidate in (raw_name, name_no_paren, name):
         key = norm_key(candidate)
         if key in ALIASES:
             name = ALIASES[key]
@@ -248,95 +243,51 @@ def _parse_col(col, untradable=False, category=None):
     else:
         value = extract_value(col)
         if value is None:
-            value = "untradable"  # строки "Value - ..." на карточке нет
+            value = "untradable"
 
-    return {"name": name, "value": value, "type": weapon_type, "category": category}
+    return {"name": name, "value": value, "type": weapon_type}
 
 
 def empty_result():
     return {"Оружие": {"Ножи": {}, "Пистолеты": {}}, "Прочее": {}}
 
 
-def add_leaf(container, name, value, category=None):
-    """Добавляет предмет в контейнер с учётом категории редкости.
-
-    Если предмета с таким именем нет — создаёт простую запись только со значением.
-    Если предмет уже есть — преобразует в словарь {category: value} для поддержки дубликатов.
-    """
+def add_leaf(container, name, value, category):
+    rarity = RARITY_MAP.get(category, "unknown")
     if name not in container:
-        # Первое вхождение — сохраняем ТОЛЬКО значение (не структуру)
-        # Но запоминаем категорию во временном атрибуте для потенциального преобразования
-        container[name] = value
-        # Сохраняем метаданные о первой категории в специальном ключе
-        if category:
-            # Создаём временный маркер для отслеживания первой категории
-            container[f"_meta_{name}_first_category"] = category
-        return
-
-    existing = container[name]
-
-    # Если уже словарь (дубликат имени) — добавляем новую категорию
-    if isinstance(existing, dict):
-        if category and category not in existing:
-            existing[category] = value
-        elif category:
-            # Категория уже есть — перезаписываем (обновление цены)
-            existing[category] = value
-        return
-
-    # Если было простое значение, а пришёл дубликат — превращаем в словарь
-    # Извлекаем первую категорию из метаданных
-    first_category = container.pop(f"_meta_{name}_first_category", "unknown")
-
-    # Создаём структуру с обеими категориями
-    container[name] = {
-        first_category: existing,  # Старое значение с его категорией
-        category: value if category else existing  # Новое значение
-    }
-
-    # Если новая категория не указана, не добавляем дубликат
-    if not category:
-        # Оба без категории — нумеруем (старая логика, редкий случай)
-        base, n = name, 2
-        while f"{base} ({n})" in container:
+        container[name] = {}
+    
+    # Если значение уже есть, не перезаписываем втупую, ищем свободный слот
+    if rarity in container[name] and container[name][rarity] != value:
+        base, n = rarity, 2
+        while f"{base}_{n}" in container[name]:
             n += 1
-        container[f"{base} ({n})"] = value
-        # Восстанавливаем оригинал
-        container[name] = existing
+        container[name][f"{base}_{n}"] = value
+    else:
+        container[name][rarity] = value
 
 
 def add_item(result, item):
     name = item.get("name")
     if not name:
         return
-    category = item.get("category")
+    cat = item.get("category")
     if item.get("type") == "knife":
-        add_leaf(result["Оружие"]["Ножи"], name, item["value"], category)
+        add_leaf(result["Оружие"]["Ножи"], name, item["value"], cat)
     elif item.get("type") == "gun":
-        add_leaf(result["Оружие"]["Пистолеты"], name, item["value"], category)
+        add_leaf(result["Оружие"]["Пистолеты"], name, item["value"], cat)
     else:
-        add_leaf(result["Прочее"], name, item["value"], category)
-
-
-def clean_metadata(container):
-    """Удаляет временные метаданные (ключи _meta_*) из контейнера."""
-    keys_to_remove = [key for key in container.keys() if key.startswith("_meta_")]
-    for key in keys_to_remove:
-        del container[key]
+        add_leaf(result["Прочее"], name, item["value"], cat)
 
 
 def count_result(result):
-    """Подсчитывает количество уникальных предметов (не категорий внутри них)."""
-    # Очищаем метаданные перед подсчётом
-    clean_metadata(result["Оружие"]["Ножи"])
-    clean_metadata(result["Оружие"]["Пистолеты"])
-    clean_metadata(result["Прочее"])
-
-    return (len(result["Оружие"]["Ножи"]) + len(result["Оружие"]["Пистолеты"])
-            + len(result["Прочее"]))
+    count = 0
+    for cat in (result["Оружие"]["Ножи"], result["Оружие"]["Пистолеты"], result["Прочее"]):
+        for item_rarities in cat.values():
+            count += len(item_rarities)
+    return count
 
 
-# ---------- быстрый путь: curl_cffi ----------
 def scrape_fast():
     if not HAS_CURL:
         print("[fast] curl_cffi не установлен — пропуск")
@@ -359,8 +310,9 @@ def scrape_fast():
             soup = make_soup(resp.text)
             count = 0
             for col in soup.select(".itemcolumn"):
-                item = _parse_col(col, untradable=untradable, category=category)
+                item = _parse_col(col, untradable=untradable)
                 if item:
+                    item["category"] = category  # Прокидываем категорию
                     items.append(item)
                     count += 1
             if count:
@@ -372,7 +324,6 @@ def scrape_fast():
     return items
 
 
-# ---------- запасной путь: браузер ----------
 def scrape_browser():
     try:
         import undetected_chromedriver as uc
@@ -404,8 +355,9 @@ def scrape_browser():
                 continue
             count = 0
             for col in soup.select(".itemcolumn"):
-                item = _parse_col(col, untradable=untradable, category=category)
+                item = _parse_col(col, untradable=untradable)
                 if item:
+                    item["category"] = category  # Прокидываем категорию
                     items.append(item)
                     count += 1
             if count:
@@ -440,9 +392,9 @@ def main():
     META_PATH.write_text(json.dumps({
         "updatedAt": now.isoformat(),
         "count": total,
-        "knives": len(result["Оружие"]["Ножи"]),
-        "guns": len(result["Оружие"]["Пистолеты"]),
-        "other": len(result["Прочее"]),
+        "knives": count_result({"Оружие": {"Ножи": result["Оружие"]["Ножи"], "Пистолеты": {}}, "Прочее": {}}),
+        "guns": count_result({"Оружие": {"Ножи": {}, "Пистолеты": result["Оружие"]["Пистолеты"]}, "Прочее": {}}),
+        "other": count_result({"Оружие": {"Ножи": {}, "Пистолеты": {}}, "Прочее": result["Прочее"]}),
     }, ensure_ascii=False, indent=4), encoding="utf-8")
     print(f"[done] успешно обновлено: {total} предметов -> {PRICES_PATH}")
 

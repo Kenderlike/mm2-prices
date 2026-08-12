@@ -1,269 +1,321 @@
-\local HttpService = game:GetService("HttpService")
+local HttpService = game:GetService("HttpService")
 local CoreGui = game:GetService("CoreGui")
 local Players = game:GetService("Players")
 local LocalPlayer = Players.LocalPlayer
+
+-- === 1. БАЗА ЦЕН ===
 local PRICES_URL = "https://raw.githubusercontent.com/Kenderlike/mm2-prices/refs/heads/main/prices.json"
 local itemPrices = {}
 local itemPricesLowerCase = {}
-local knownNames = {}
-local cleanNameCache = {}
+local knownNames = {} 
+local cleanNameCache = {} 
 local pricesLoaded = false
+
 local RARITY_COLORS = {
-common = Color3.fromRGB(106, 106, 106),
-uncommon = Color3.fromRGB(0, 255, 255),
-rare = Color3.fromRGB(0, 200, 0),
-legendary = Color3.fromRGB(220, 0, 5),
-godly_chroma = Color3.fromRGB(255, 0, 179),
-vintage = Color3.fromRGB(230, 200, 0),
-ancient_evo = Color3.fromRGB(100, 10, 255)
+    common = Color3.fromRGB(106, 106, 106),
+    uncommon = Color3.fromRGB(0, 255, 255),
+    rare = Color3.fromRGB(0, 200, 0),
+    legendary = Color3.fromRGB(220, 0, 5),
+    godly_chroma = Color3.fromRGB(255, 0, 179),
+    vintage = Color3.fromRGB(230, 200, 0),
+    ancient_evo = Color3.fromRGB(100, 10, 255)
 }
+
 local function cleanName(name)
-local s = tostring(name):gsub("%s*%b()%s*$", "")
-return s:match("^%s*(.-)%s*$") or s
+    local s = tostring(name):gsub("%s*%b()%s*$", "")
+    return s:match("^%s*(.-)%s*$") or s
 end
+
 local function getCleanNameLower(text)
-if cleanNameCache[text] then return cleanNameCache[text] end
-local clean = cleanName(text):lower()
-cleanNameCache[text] = clean
-return clean
+    if cleanNameCache[text] then return cleanNameCache[text] end
+    local clean = cleanName(text):lower()
+    cleanNameCache[text] = clean
+    return clean
 end
+
 local function getRarity(color3)
-if not color3 then return "unknown" end
-local best = "unknown"
-local minDist = math.huge
-for rarity, ref in pairs(RARITY_COLORS) do
-local dist = math.sqrt((color3.R*255 - ref.R*255)^2 + (color3.G*255 - ref.G*255)^2 + (color3.B*255 - ref.B*255)^2)
-if dist < minDist then
-minDist = dist
-best = rarity
+    if not color3 then return "unknown" end
+    local best = "unknown"
+    local minDist = math.huge
+    
+    for rarity, ref in pairs(RARITY_COLORS) do
+        local dist = math.sqrt((color3.R*255 - ref.R*255)^2 + (color3.G*255 - ref.G*255)^2 + (color3.B*255 - ref.B*255)^2)
+        if dist < minDist then
+            minDist = dist
+            best = rarity
+        end
+    end
+    
+    if minDist < 15 then return best end
+    return "unknown"
 end
-end
-if minDist < 15 then return best end
-return "unknown"
-end
+
 task.spawn(function()
-local success, result = pcall(function() return game:HttpGet(PRICES_URL) end)
-if success then
-local ok, decoded = pcall(function() return HttpService:JSONDecode(result) end)
-if ok and type(decoded) == "table" then
-local function flattenPrices(tbl)
-for key, value in pairs(tbl) do
-if type(value) == "table" then
-local isRarities = false
-for k, _ in pairs(value) do
-if RARITY_COLORS[k] then isRarities = true break end
-end
-if isRarities then
-knownNames[key:lower()] = true
-knownNames[cleanName(key):lower()] = true
-for rarity, price in pairs(value) do
-local combinedKey = key .. "_" .. rarity
-itemPrices[combinedKey] = price
-itemPricesLowerCase[combinedKey:lower()] = price
-end
-else
-flattenPrices(value)
-end
-else
-knownNames[key:lower()] = true
-knownNames[cleanName(key):lower()] = true
-itemPrices[key] = value
-itemPricesLowerCase[key:lower()] = value
-end
-end
-end
-flattenPrices(decoded)
-pricesLoaded = true
-print("✅ [MM2Calc] База загружена! Все системы в норме.")
-else
-warn("❌ [MM2Calc] Ошибка декодирования JSON:", decoded)
-end
-else
-warn("❌ [MM2Calc] Ошибка HTTP запроса:", result)
-end
+    local success, result = pcall(function() return game:HttpGet(PRICES_URL) end)
+    if success then
+        local ok, decoded = pcall(function() return HttpService:JSONDecode(result) end)
+        if ok and type(decoded) == "table" then
+            local function flattenPrices(tbl)
+                for key, value in pairs(tbl) do
+                    if type(value) == "table" then
+                        local isRarities = false
+                        for k, _ in pairs(value) do
+                            if RARITY_COLORS[k] then isRarities = true break end
+                        end
+
+                        if isRarities then
+                            knownNames[key:lower()] = true
+                            knownNames[cleanName(key):lower()] = true
+                            
+                            for rarity, price in pairs(value) do
+                                local combinedKey = key .. "_" .. rarity
+                                itemPrices[combinedKey] = price
+                                itemPricesLowerCase[combinedKey:lower()] = price
+                            end
+                        else
+                            flattenPrices(value)
+                        end
+                    else
+                        knownNames[key:lower()] = true
+                        knownNames[cleanName(key):lower()] = true
+                        itemPrices[key] = value
+                        itemPricesLowerCase[key:lower()] = value
+                    end
+                end
+            end
+
+            flattenPrices(decoded)
+            pricesLoaded = true
+            print("✅ [MM2Calc] База загружена! Все системы в норме.")
+        else
+            warn("❌ [MM2Calc] Ошибка декодирования JSON:", decoded)
+        end
+    else
+        warn("❌ [MM2Calc] Ошибка HTTP запроса:", result)
+    end
 end)
+
+-- === 2. ТАБЛО КАЛЬКУЛЯТОРА ===
 if CoreGui:FindFirstChild("MM2TopCalc") then CoreGui.MM2TopCalc:Destroy() end
+
 local ScreenGui = Instance.new("ScreenGui")
 ScreenGui.Name = "MM2TopCalc"
 ScreenGui.ResetOnSpawn = false
 ScreenGui.Parent = CoreGui
+
 local TopContainer = Instance.new("Frame")
 TopContainer.Size = UDim2.new(0, 400, 0, 100)
 TopContainer.Position = UDim2.new(0.5, -200, 0, 60)
 TopContainer.BackgroundTransparency = 1
 TopContainer.Visible = false
 TopContainer.Parent = ScreenGui
+
 local StatusText = Instance.new("TextLabel")
 StatusText.Size, StatusText.BackgroundTransparency = UDim2.new(1, 0, 0, 40), 1
 StatusText.Font, StatusText.TextSize = Enum.Font.GothamBlack, 30
 StatusText.Text = "WAITING FOR TRADE..."
 StatusText.TextColor3, StatusText.TextStrokeTransparency = Color3.fromRGB(200, 200, 200), 0
 StatusText.Parent = TopContainer
+
 local NumbersFrame = Instance.new("Frame")
 NumbersFrame.Size, NumbersFrame.Position = UDim2.new(1, 0, 0, 50), UDim2.new(0, 0, 0, 40)
 NumbersFrame.BackgroundTransparency = 1
 NumbersFrame.Parent = TopContainer
+
 local function createValueBox(xPos, text, color)
-local box = Instance.new("TextLabel")
-box.Size, box.Position = UDim2.new(0, 120, 0, 40), UDim2.new(xPos, 0, 0, 0)
-box.BackgroundColor3, box.BackgroundTransparency = Color3.fromRGB(30, 30, 30), 0.3
-box.Font, box.TextSize = Enum.Font.GothamBold, 24
-box.Text, box.TextColor3 = text, color
-box.Parent = NumbersFrame
-Instance.new("UICorner", box).CornerRadius = UDim.new(0, 8)
-return box
+    local box = Instance.new("TextLabel")
+    box.Size, box.Position = UDim2.new(0, 120, 0, 40), UDim2.new(xPos, 0, 0, 0)
+    box.BackgroundColor3, box.BackgroundTransparency = Color3.fromRGB(30, 30, 30), 0.3
+    box.Font, box.TextSize = Enum.Font.GothamBold, 24
+    box.Text, box.TextColor3 = text, color
+    box.Parent = NumbersFrame
+    Instance.new("UICorner", box).CornerRadius = UDim.new(0, 8)
+    return box
 end
+
 local MyValueBox    = createValueBox(0,    "0", Color3.fromRGB(46, 204, 113))
 local DiffValueBox  = createValueBox(0.35, "0", Color3.fromRGB(150, 150, 150))
 local TheirValueBox = createValueBox(0.7,  "0", Color3.fromRGB(255, 255, 255))
+
 local function UpdateCalc(myTotal, theirTotal)
-MyValueBox.Text, TheirValueBox.Text = tostring(myTotal), tostring(theirTotal)
-local diff = myTotal - theirTotal
-if diff > 10 then
-StatusText.Text, StatusText.TextColor3 = "WIN", Color3.fromRGB(46, 204, 113)
-DiffValueBox.Text, DiffValueBox.TextColor3 = "+" .. diff, Color3.fromRGB(46, 204, 113)
-elseif diff < -10 then
-StatusText.Text, StatusText.TextColor3 = "LOSE", Color3.fromRGB(231, 76, 60)
-DiffValueBox.Text, DiffValueBox.TextColor3 = tostring(diff), Color3.fromRGB(231, 76, 60)
-else
-StatusText.Text, StatusText.TextColor3 = "FAIR", Color3.fromRGB(200, 200, 200)
-DiffValueBox.Text, DiffValueBox.TextColor3 = (diff > 0 and "+" or "") .. diff, Color3.fromRGB(200, 200, 200)
+    MyValueBox.Text, TheirValueBox.Text = tostring(myTotal), tostring(theirTotal)
+    local diff = myTotal - theirTotal
+
+    if diff > 10 then
+        StatusText.Text, StatusText.TextColor3 = "WIN", Color3.fromRGB(46, 204, 113)
+        DiffValueBox.Text, DiffValueBox.TextColor3 = "+" .. diff, Color3.fromRGB(46, 204, 113)
+    elseif diff < -10 then
+        StatusText.Text, StatusText.TextColor3 = "LOSE", Color3.fromRGB(231, 76, 60)
+        DiffValueBox.Text, DiffValueBox.TextColor3 = tostring(diff), Color3.fromRGB(231, 76, 60)
+    else
+        StatusText.Text, StatusText.TextColor3 = "FAIR", Color3.fromRGB(200, 200, 200)
+        DiffValueBox.Text, DiffValueBox.TextColor3 = (diff > 0 and "+" or "") .. diff, Color3.fromRGB(200, 200, 200)
+    end
 end
-end
+
+-- === 3. ПОДСЧЕТ И ЦЕННИКИ ===
 local function getPrice(rawName, rarity)
-if not rawName or rawName == "" then return nil end
-local name = cleanName(rawName)
-local checkKeys = {name .. "_" .. rarity, rawName .. "_" .. rarity, name .. "_unknown", name, rawName}
-for _, key in ipairs(checkKeys) do
-if itemPrices[key] ~= nil then return itemPrices[key] end
-if itemPricesLowerCase[key:lower()] ~= nil then return itemPricesLowerCase[key:lower()] end
+    if not rawName or rawName == "" then return nil end
+    local name = cleanName(rawName)
+    local checkKeys = {name .. "_" .. rarity, rawName .. "_" .. rarity, name .. "_unknown", name, rawName}
+
+    for _, key in ipairs(checkKeys) do
+        if itemPrices[key] ~= nil then return itemPrices[key] end
+        if itemPricesLowerCase[key:lower()] ~= nil then return itemPricesLowerCase[key:lower()] end
+    end
+    return nil
 end
-return nil
-end
+
 local function updatePriceTag(element, price)
-local parentFrame = element.Parent
-if not parentFrame then return end
-local cardFrame = parentFrame.Parent
-if not cardFrame or not cardFrame:IsA("GuiObject") or cardFrame.AbsoluteSize.X > 350 or cardFrame.AbsoluteSize.Y > 350 then
-cardFrame = parentFrame
+    local parentFrame = element.Parent
+    if not parentFrame then return end
+    
+    local cardFrame = parentFrame.Parent
+    if not cardFrame or not cardFrame:IsA("GuiObject") or cardFrame.AbsoluteSize.X > 350 or cardFrame.AbsoluteSize.Y > 350 then
+        cardFrame = parentFrame 
+    end
+
+    local tag = cardFrame:FindFirstChild("MM2_PriceTag")
+    if not tag then
+        tag = Instance.new("TextLabel")
+        tag.Name, tag.Size, tag.Position = "MM2_PriceTag", UDim2.new(1, 0, 0, 20), UDim2.new(0, 0, 0, 0)
+        
+        -- ПОЛНОСТЬЮ ПРОЗРАЧНЫЙ ФОН И ЧЕРНАЯ ОБВОДКА
+        tag.BackgroundTransparency = 1 
+        tag.TextStrokeTransparency = 0 
+        
+        tag.TextSize, tag.Font, tag.ZIndex, tag.BorderSizePixel = 16, Enum.Font.GothamBlack, 100, 0
+        tag.Parent = cardFrame
+    end
+
+    local targetText, targetColor
+    if type(price) == "number" then
+        targetText = price == 0 and "0" or tostring(price)
+        targetColor = price == 0 and Color3.fromRGB(200, 100, 100) or Color3.fromRGB(46, 204, 113)
+    elseif type(price) == "string" then
+        targetText = price
+        targetColor = price == "untradable" and Color3.fromRGB(150, 150, 150) or Color3.fromRGB(255, 200, 100)
+    else
+        if tag then tag:Destroy() end return
+    end
+
+    if tag.Text ~= targetText then tag.Text = targetText end
+    if tag.TextColor3 ~= targetColor then tag.TextColor3 = targetColor end
 end
-local tag = cardFrame:FindFirstChild("MM2_PriceTag")
-if not tag then
-tag = Instance.new("TextLabel")
-tag.Name, tag.Size, tag.Position = "MM2_PriceTag", UDim2.new(1, 0, 0, 20), UDim2.new(0, 0, 0, 0)
-tag.BackgroundTransparency = 1
-tag.TextStrokeTransparency = 0
-tag.TextSize, tag.Font, tag.ZIndex, tag.BorderSizePixel = 16, Enum.Font.GothamBlack, 100, 0
-tag.Parent = cardFrame
-end
-local targetText, targetColor
-if type(price) == "number" then
-targetText = price == 0 and "0" or tostring(price)
-targetColor = price == 0 and Color3.fromRGB(200, 100, 100) or Color3.fromRGB(46, 204, 113)
-elseif type(price) == "string" then
-targetText = price
-targetColor = price == "untradable" and Color3.fromRGB(150, 150, 150) or Color3.fromRGB(255, 200, 100)
-else
-if tag then tag:Destroy() end return
-end
-if tag.Text ~= targetText then tag.Text = targetText end
-if tag.TextColor3 ~= targetColor then tag.TextColor3 = targetColor end
-end
+
 local function extractRarity(element)
-local p = element.Parent
-if p and p:IsA("GuiObject") and p.BackgroundTransparency < 1 then
-return getRarity(p:IsA("Frame") and p.BackgroundColor3 or p.ImageColor3)
+    local p = element.Parent
+    if p and p:IsA("GuiObject") and p.BackgroundTransparency < 1 then
+        return getRarity(p:IsA("Frame") and p.BackgroundColor3 or p.ImageColor3)
+    end
+    return "unknown"
 end
-return "unknown"
-end
+
 local function calculateOffer(container)
-local total = 0
-if not container then return total end
-for _, slot in ipairs(container:GetChildren()) do
-if slot:IsA("GuiObject") then
-for _, el in ipairs(slot:GetDescendants()) do
-if el:IsA("TextLabel") and el.Name ~= "MM2_PriceTag" then
-local text = el.Text
-if text and #text > 0 and #text < 35 then
-local cleanLower = getCleanNameLower(text)
-if knownNames[text:lower()] or knownNames[cleanLower] then
-local rarity = extractRarity(el)
-local price = getPrice(text, rarity)
-if type(price) == "number" then
-total = total + price
-break
+    local total = 0
+    if not container then return total end
+    
+    for _, slot in ipairs(container:GetChildren()) do
+        if slot:IsA("GuiObject") then
+            for _, el in ipairs(slot:GetDescendants()) do
+                if el:IsA("TextLabel") and el.Name ~= "MM2_PriceTag" then
+                    local text = el.Text
+                    if text and #text > 0 and #text < 35 then
+                        local cleanLower = getCleanNameLower(text)
+                        if knownNames[text:lower()] or knownNames[cleanLower] then
+                            local rarity = extractRarity(el)
+                            local price = getPrice(text, rarity)
+                            if type(price) == "number" then
+                                total = total + price
+                                break
+                            end
+                        end
+                    end
+                end
+            end
+        end
+    end
+    return total
 end
-end
-end
-end
-end
-end
-end
-return total
-end
+
+-- === 4. АБСОЛЮТНЫЙ АНТИ-ЛАГ ЦИКЛ ===
 local cachedLabels = {}
 local activeTradeUI = nil
-local isScanning = false
+local isScanning = false 
+
 local function rebuildCache()
-local labels = {}
-local tradeWindow = nil
-local PlayerGui = LocalPlayer:FindFirstChild("PlayerGui")
-if PlayerGui then
-for _, gui in ipairs(PlayerGui:GetChildren()) do
-if gui:IsA("ScreenGui") and gui.Enabled and gui.Name ~= "Chat" and gui.Name ~= "BubbleChat" and gui.Name ~= "PlayerList" then
-local descendants = gui:GetDescendants()
-for i, desc in ipairs(descendants) do
-if i % 300 == 0 then
-task.wait()
+    local labels = {}
+    local tradeWindow = nil
+    local PlayerGui = LocalPlayer:FindFirstChild("PlayerGui")
+    
+    if PlayerGui then
+        for _, gui in ipairs(PlayerGui:GetChildren()) do
+            if gui:IsA("ScreenGui") and gui.Enabled and gui.Name ~= "Chat" and gui.Name ~= "BubbleChat" and gui.Name ~= "PlayerList" then
+                
+                local descendants = gui:GetDescendants()
+                for i, desc in ipairs(descendants) do
+                    
+                    if i % 300 == 0 then
+                        task.wait()
+                    end
+                    
+                    if desc:IsA("TextLabel") and desc.Name ~= "MM2_PriceTag" then
+                        local p = desc.Parent
+                        if p and (p:IsA("Frame") or p:IsA("ImageLabel") or p:IsA("ImageButton")) then
+                            table.insert(labels, desc)
+                        end
+                    end
+                    
+                    if desc.Name == "Trade" and desc:IsA("GuiObject") and desc.Visible and desc:FindFirstChild("Player1") then
+                        tradeWindow = desc
+                    end
+                end
+            end
+        end
+    end
+    return labels, tradeWindow
 end
-if desc:IsA("TextLabel") and desc.Name ~= "MM2_PriceTag" then
-local p = desc.Parent
-if p and (p:IsA("Frame") or p:IsA("ImageLabel") or p:IsA("ImageButton")) then
-table.insert(labels, desc)
-end
-end
-if desc.Name == "Trade" and desc:IsA("GuiObject") and desc.Visible and desc:FindFirstChild("Player1") then
-tradeWindow = desc
-end
-end
-end
-end
-end
-return labels, tradeWindow
-end
+
 task.spawn(function()
-while not pricesLoaded do task.wait(0.5) end
-while task.wait(0.5) do
-if not isScanning then
-task.spawn(function()
-isScanning = true
-cachedLabels, activeTradeUI = rebuildCache()
-for _, el in ipairs(cachedLabels) do
-if el.Parent then
-local text = el.Text
-if text and #text > 0 and #text < 35 then
-local cleanLower = getCleanNameLower(text)
-if knownNames[text:lower()] or knownNames[cleanLower] then
-local rarity = extractRarity(el)
-local price = getPrice(text, rarity)
-if price ~= nil then
-updatePriceTag(el, price)
-end
-end
-end
-end
-end
-if activeTradeUI and activeTradeUI.Parent and activeTradeUI.Visible then
-TopContainer.Visible = true
-local myOffer    = activeTradeUI:FindFirstChild("Player1") and activeTradeUI.Player1:FindFirstChild("Offer")
-local theirOffer = activeTradeUI:FindFirstChild("Player2") and activeTradeUI.Player2:FindFirstChild("Offer")
-UpdateCalc(myOffer and calculateOffer(myOffer) or 0, theirOffer and calculateOffer(theirOffer) or 0)
-else
-TopContainer.Visible = false
-UpdateCalc(0, 0)
-end
-isScanning = false
-end)
-end
-end
+    while not pricesLoaded do task.wait(0.5) end
+
+    while task.wait(0.5) do
+        if not isScanning then
+            task.spawn(function()
+                isScanning = true
+                
+                cachedLabels, activeTradeUI = rebuildCache()
+                
+                for _, el in ipairs(cachedLabels) do
+                    if el.Parent then 
+                        local text = el.Text
+                        if text and #text > 0 and #text < 35 then
+                            local cleanLower = getCleanNameLower(text)
+                            
+                            if knownNames[text:lower()] or knownNames[cleanLower] then
+                                local rarity = extractRarity(el)
+                                local price = getPrice(text, rarity)
+                                
+                                if price ~= nil then
+                                    updatePriceTag(el, price)
+                                end
+                            end
+                        end
+                    end
+                end
+
+                if activeTradeUI and activeTradeUI.Parent and activeTradeUI.Visible then
+                    TopContainer.Visible = true
+                    local myOffer    = activeTradeUI:FindFirstChild("Player1") and activeTradeUI.Player1:FindFirstChild("Offer")
+                    local theirOffer = activeTradeUI:FindFirstChild("Player2") and activeTradeUI.Player2:FindFirstChild("Offer")
+                    UpdateCalc(myOffer and calculateOffer(myOffer) or 0, theirOffer and calculateOffer(theirOffer) or 0)
+                else
+                    TopContainer.Visible = false
+                    UpdateCalc(0, 0)
+                end
+                
+                isScanning = false
+            end)
+        end
+    end
 end)

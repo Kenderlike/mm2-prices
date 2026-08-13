@@ -71,7 +71,7 @@
                 "legendary": "x4 T1"
             },
             "Cane": {
-                "rare": "600",
+                "rare": "575",
                 "rare_2": "x4 T1",
                 "common": "x3 T1"
             },
@@ -820,24 +820,24 @@
             "godly_chroma": "2,450"
         },
         "Alienbeam": {
-            "godly_chroma": "1,875"
+            "godly_chroma": "1,925"
         },
         "Darkshot": {
-            "godly_chroma": "1,750"
+            "godly_chroma": "1,775"
         },
         "Darksword": {
-            "godly_chroma": "1,725"
+            "godly_chroma": "1,750"
         },
         "Ray": {
-            "godly_chroma": "1,650"
+            "godly_chroma": "1,700"
         },
         "Blossom": {
-            "godly_chroma": "1,350",
+            "godly_chroma": "1,360",
             "uncommon": "x2 T1",
             "common": "x4 T1"
         },
         "Sakura": {
-            "godly_chroma": "1,340"
+            "godly_chroma": "1,350"
         },
         "Sunrise": {
             "godly_chroma": "1,125"
@@ -912,13 +912,13 @@
         "Water": {
             "godly_chroma": "250"
         },
-        "Icecream": {
-            "godly_chroma": "160"
-        },
         "Treat": {
             "godly_chroma": "155"
         },
         "Beachy": {
+            "godly_chroma": "150"
+        },
+        "Icecream": {
             "godly_chroma": "150"
         },
         "Sands": {
@@ -985,12 +985,12 @@
         "Makeshift": {
             "godly_chroma": "33"
         },
+        "Ornament": {
+            "godly_chroma": "32",
+            "common": "x4 T1"
+        },
         "Sugar": {
             "godly_chroma": "32"
-        },
-        "Ornament": {
-            "godly_chroma": "30",
-            "common": "x4 T1"
         },
         "Green Luger": {
             "godly_chroma": "23"
@@ -1207,11 +1207,11 @@
             "ancient_evo": "8,100"
         },
         "Celestial": {
-            "ancient_evo": "2,400",
+            "ancient_evo": "2,450",
             "unknown": "untradable"
         },
         "Vampire's Axe": {
-            "ancient_evo": "1,250"
+            "ancient_evo": "1,275"
         },
         "Harvester": {
             "ancient_evo": "250"
@@ -1252,20 +1252,20 @@
         "Chroma Alienbeam": {
             "godly_chroma": "24,000"
         },
+        "Chroma Ray": {
+            "godly_chroma": "13,250"
+        },
         "Chroma Sunrise": {
             "godly_chroma": "13,250"
         },
-        "Chroma Ray": {
-            "godly_chroma": "13,000"
-        },
         "Chroma Sunset": {
-            "godly_chroma": "9,000"
-        },
-        "Chroma Blizzard": {
-            "godly_chroma": "7,750"
+            "godly_chroma": "9,250"
         },
         "Chroma Snowcannon": {
             "godly_chroma": "7,750"
+        },
+        "Chroma Blizzard": {
+            "godly_chroma": "7,500"
         },
         "Chroma Snowstorm": {
             "godly_chroma": "4,250"
@@ -1274,16 +1274,16 @@
             "godly_chroma": "4,250"
         },
         "Chroma Snow Dagger": {
-            "godly_chroma": "3,750"
+            "godly_chroma": "3,500"
         },
         "Chroma Water": {
             "godly_chroma": "3,400"
         },
         "Chroma Treat": {
-            "godly_chroma": "2,600"
+            "godly_chroma": "2,500"
         },
         "Chroma Sweet": {
-            "godly_chroma": "2,300"
+            "godly_chroma": "2,250"
         },
         "Chroma Icecream": {
             "godly_chroma": "2,000"
@@ -1407,7 +1407,7 @@
         "Elf": {
             "unknown": "625",
             "unknown_2": "25",
-            "common": "15",
+            "common": "20",
             "common_2": "x3 T1",
             "common_3": "x2 T1"
         },
@@ -1426,7 +1426,7 @@
             "unknown_4": "3"
         },
         "Black Cat": {
-            "unknown": "80"
+            "unknown": "75"
         },
         "Green Pumpkin": {
             "unknown": "60",
@@ -1731,7 +1731,7 @@
             "unknown": "untradable"
         },
         "Dungeon": {
-            "rare": "215"
+            "rare": "210"
         },
         "Dark": {
             "rare": "70",
@@ -1780,7 +1780,7 @@
         },
         "Mummy": {
             "rare": "x4 T1",
-            "uncommon": "18"
+            "uncommon": "20"
         },
         "Nuke": {
             "rare": "x3 T1"
@@ -2604,22 +2604,22 @@
             "unknown": "123K"
         },
         "Chroma Alien Set": {
-            "unknown": "37,000"
+            "unknown": "37,250"
         },
         "Chroma Bauble Set": {
             "unknown": "35,800"
         },
         "Chroma Sun Set": {
-            "unknown": "22,250"
+            "unknown": "22,500"
         },
         "Chroma Blizzard Set": {
-            "unknown": "12,000"
+            "unknown": "11,750"
         },
         "Chroma Snow Set": {
-            "unknown": "11,500"
+            "unknown": "11,250"
         },
         "Chroma Sweet Set": {
-            "unknown": "4,900"
+            "unknown": "4,750"
         },
         "Chroma Beach Set": {
             "unknown": "3,700"
@@ -2640,20 +2640,20 @@
             "unknown": "5,950"
         },
         "Celestial Set": {
-            "unknown": "5,100"
+            "unknown": "5,150"
         },
         "Alien Set": {
-            "unknown": "3,525"
+            "unknown": "3,625"
         },
         "Dark Set": {
-            "unknown": "3,475",
+            "unknown": "3,525",
             "unknown_2": "71"
         },
         "Vampire's Set": {
-            "unknown": "3,200"
+            "unknown": "3,225"
         },
         "Sakura Set": {
-            "unknown": "2,690"
+            "unknown": "2,710"
         },
         "Sun Set": {
             "unknown": "1,750"
@@ -2665,7 +2665,7 @@
             "unknown": "1,100"
         },
         "Bauble Set": {
-            "unknown": "855"
+            "unknown": "857"
         },
         "Rainbow Set": {
             "unknown": "830"

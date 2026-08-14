@@ -71,7 +71,7 @@
                 "legendary": "x4 T1"
             },
             "Cane": {
-                "rare": "575",
+                "rare": "550",
                 "rare_2": "x4 T1",
                 "common": "x3 T1"
             },
@@ -820,16 +820,16 @@
             "godly_chroma": "2,450"
         },
         "Alienbeam": {
-            "godly_chroma": "1,925"
+            "godly_chroma": "1,975"
         },
         "Darkshot": {
             "godly_chroma": "1,775"
         },
-        "Darksword": {
+        "Ray": {
             "godly_chroma": "1,750"
         },
-        "Ray": {
-            "godly_chroma": "1,700"
+        "Darksword": {
+            "godly_chroma": "1,750"
         },
         "Blossom": {
             "godly_chroma": "1,360",
@@ -915,23 +915,23 @@
         "Treat": {
             "godly_chroma": "155"
         },
-        "Beachy": {
-            "godly_chroma": "150"
-        },
-        "Icecream": {
-            "godly_chroma": "150"
-        },
-        "Sands": {
-            "godly_chroma": "150"
-        },
         "Sweet": {
             "godly_chroma": "150"
+        },
+        "Beachy": {
+            "godly_chroma": "145"
+        },
+        "Sands": {
+            "godly_chroma": "145"
         },
         "Borealis": {
             "godly_chroma": "145"
         },
         "Australis": {
             "godly_chroma": "140"
+        },
+        "Icecream": {
+            "godly_chroma": "135"
         },
         "Bat": {
             "godly_chroma": "120",
@@ -1211,7 +1211,7 @@
             "unknown": "untradable"
         },
         "Vampire's Axe": {
-            "ancient_evo": "1,275"
+            "ancient_evo": "1,300"
         },
         "Harvester": {
             "ancient_evo": "250"
@@ -1253,7 +1253,7 @@
             "godly_chroma": "24,000"
         },
         "Chroma Ray": {
-            "godly_chroma": "13,250"
+            "godly_chroma": "13,500"
         },
         "Chroma Sunrise": {
             "godly_chroma": "13,250"
@@ -1265,7 +1265,7 @@
             "godly_chroma": "7,750"
         },
         "Chroma Blizzard": {
-            "godly_chroma": "7,500"
+            "godly_chroma": "7,250"
         },
         "Chroma Snowstorm": {
             "godly_chroma": "4,250"
@@ -1280,22 +1280,22 @@
             "godly_chroma": "3,400"
         },
         "Chroma Treat": {
-            "godly_chroma": "2,500"
+            "godly_chroma": "2,400"
         },
         "Chroma Sweet": {
-            "godly_chroma": "2,250"
+            "godly_chroma": "2,200"
         },
         "Chroma Icecream": {
-            "godly_chroma": "2,000"
-        },
-        "Chroma Sands": {
             "godly_chroma": "1,900"
         },
-        "Chroma Beachy": {
-            "godly_chroma": "1,800"
+        "Chroma Sands": {
+            "godly_chroma": "1,850"
         },
         "Chroma Ornament": {
             "godly_chroma": "1,800"
+        },
+        "Chroma Beachy": {
+            "godly_chroma": "1,750"
         },
         "Chroma Darkbringer": {
             "godly_chroma": "65"
@@ -1731,7 +1731,7 @@
             "unknown": "untradable"
         },
         "Dungeon": {
-            "rare": "210"
+            "rare": "200"
         },
         "Dark": {
             "rare": "70",
@@ -2604,7 +2604,7 @@
             "unknown": "123K"
         },
         "Chroma Alien Set": {
-            "unknown": "37,250"
+            "unknown": "37,500"
         },
         "Chroma Bauble Set": {
             "unknown": "35,800"
@@ -2613,16 +2613,16 @@
             "unknown": "22,500"
         },
         "Chroma Blizzard Set": {
-            "unknown": "11,750"
+            "unknown": "11,500"
         },
         "Chroma Snow Set": {
             "unknown": "11,250"
         },
         "Chroma Sweet Set": {
-            "unknown": "4,750"
+            "unknown": "4,600"
         },
         "Chroma Beach Set": {
-            "unknown": "3,700"
+            "unknown": "3,600"
         },
         "Chroma Bringer Set": {
             "unknown": "125"
@@ -2643,14 +2643,14 @@
             "unknown": "5,150"
         },
         "Alien Set": {
-            "unknown": "3,625"
+            "unknown": "3,725"
         },
         "Dark Set": {
             "unknown": "3,525",
             "unknown_2": "71"
         },
         "Vampire's Set": {
-            "unknown": "3,225"
+            "unknown": "3,250"
         },
         "Sakura Set": {
             "unknown": "2,710"
@@ -2695,7 +2695,7 @@
             "unknown": "305"
         },
         "Beach Set": {
-            "unknown": "300"
+            "unknown": "290"
         },
         "Borealis Set": {
             "unknown": "285"

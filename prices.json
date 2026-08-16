@@ -820,24 +820,24 @@
             "godly_chroma": "2,450"
         },
         "Alienbeam": {
-            "godly_chroma": "1,975"
-        },
-        "Darkshot": {
-            "godly_chroma": "1,775"
+            "godly_chroma": "2,100"
         },
         "Ray": {
-            "godly_chroma": "1,750"
+            "godly_chroma": "1,800"
+        },
+        "Darkshot": {
+            "godly_chroma": "1,800"
         },
         "Darksword": {
-            "godly_chroma": "1,750"
+            "godly_chroma": "1,775"
         },
         "Blossom": {
-            "godly_chroma": "1,360",
+            "godly_chroma": "1,370",
             "uncommon": "x2 T1",
             "common": "x4 T1"
         },
         "Sakura": {
-            "godly_chroma": "1,350"
+            "godly_chroma": "1,360"
         },
         "Sunrise": {
             "godly_chroma": "1,125"
@@ -883,16 +883,16 @@
             "godly_chroma": "285",
             "unknown": "untradable"
         },
-        "Waves": {
-            "godly_chroma": "280",
-            "rare": "x2 T1"
-        },
         "Xeno": {
-            "godly_chroma": "280",
+            "godly_chroma": "285",
             "unknown": "untradable"
         },
         "Xenoshot": {
-            "godly_chroma": "280"
+            "godly_chroma": "285"
+        },
+        "Waves": {
+            "godly_chroma": "280",
+            "rare": "x2 T1"
         },
         "Blizzard": {
             "godly_chroma": "260",
@@ -918,20 +918,20 @@
         "Sweet": {
             "godly_chroma": "150"
         },
-        "Beachy": {
-            "godly_chroma": "145"
-        },
-        "Sands": {
-            "godly_chroma": "145"
-        },
         "Borealis": {
             "godly_chroma": "145"
         },
         "Australis": {
             "godly_chroma": "140"
         },
-        "Icecream": {
+        "Beachy": {
             "godly_chroma": "135"
+        },
+        "Sands": {
+            "godly_chroma": "135"
+        },
+        "Icecream": {
+            "godly_chroma": "130"
         },
         "Bat": {
             "godly_chroma": "120",
@@ -951,10 +951,14 @@
             "godly_chroma": "65"
         },
         "Luger": {
-            "godly_chroma": "40"
+            "godly_chroma": "37"
         },
         "Red Luger": {
             "godly_chroma": "37"
+        },
+        "Ornament": {
+            "godly_chroma": "35",
+            "common": "x4 T1"
         },
         "Phantom": {
             "godly_chroma": "35",
@@ -984,10 +988,6 @@
         },
         "Makeshift": {
             "godly_chroma": "33"
-        },
-        "Ornament": {
-            "godly_chroma": "32",
-            "common": "x4 T1"
         },
         "Sugar": {
             "godly_chroma": "32"
@@ -1211,7 +1211,7 @@
             "unknown": "untradable"
         },
         "Vampire's Axe": {
-            "ancient_evo": "1,300"
+            "ancient_evo": "1,325"
         },
         "Harvester": {
             "ancient_evo": "250"
@@ -1253,7 +1253,7 @@
             "godly_chroma": "24,000"
         },
         "Chroma Ray": {
-            "godly_chroma": "13,500"
+            "godly_chroma": "13,750"
         },
         "Chroma Sunrise": {
             "godly_chroma": "13,250"
@@ -1265,7 +1265,7 @@
             "godly_chroma": "7,750"
         },
         "Chroma Blizzard": {
-            "godly_chroma": "7,250"
+            "godly_chroma": "7,000"
         },
         "Chroma Snowstorm": {
             "godly_chroma": "4,250"
@@ -1273,29 +1273,29 @@
         "Chroma Heart Wand": {
             "godly_chroma": "4,250"
         },
-        "Chroma Snow Dagger": {
-            "godly_chroma": "3,500"
-        },
         "Chroma Water": {
             "godly_chroma": "3,400"
         },
+        "Chroma Snow Dagger": {
+            "godly_chroma": "3,250"
+        },
         "Chroma Treat": {
-            "godly_chroma": "2,400"
+            "godly_chroma": "2,300"
         },
         "Chroma Sweet": {
-            "godly_chroma": "2,200"
-        },
-        "Chroma Icecream": {
-            "godly_chroma": "1,900"
-        },
-        "Chroma Sands": {
-            "godly_chroma": "1,850"
+            "godly_chroma": "2,150"
         },
         "Chroma Ornament": {
             "godly_chroma": "1,800"
         },
-        "Chroma Beachy": {
+        "Chroma Icecream": {
+            "godly_chroma": "1,800"
+        },
+        "Chroma Sands": {
             "godly_chroma": "1,750"
+        },
+        "Chroma Beachy": {
+            "godly_chroma": "1,650"
         },
         "Chroma Darkbringer": {
             "godly_chroma": "65"
@@ -1731,7 +1731,7 @@
             "unknown": "untradable"
         },
         "Dungeon": {
-            "rare": "200"
+            "rare": "190"
         },
         "Dark": {
             "rare": "70",
@@ -2604,7 +2604,7 @@
             "unknown": "123K"
         },
         "Chroma Alien Set": {
-            "unknown": "37,500"
+            "unknown": "37,750"
         },
         "Chroma Bauble Set": {
             "unknown": "35,800"
@@ -2613,16 +2613,16 @@
             "unknown": "22,500"
         },
         "Chroma Blizzard Set": {
-            "unknown": "11,500"
-        },
-        "Chroma Snow Set": {
             "unknown": "11,250"
         },
+        "Chroma Snow Set": {
+            "unknown": "11,000"
+        },
         "Chroma Sweet Set": {
-            "unknown": "4,600"
+            "unknown": "4,450"
         },
         "Chroma Beach Set": {
-            "unknown": "3,600"
+            "unknown": "3,400"
         },
         "Chroma Bringer Set": {
             "unknown": "125"
@@ -2643,17 +2643,17 @@
             "unknown": "5,150"
         },
         "Alien Set": {
-            "unknown": "3,725"
+            "unknown": "3,900"
         },
         "Dark Set": {
-            "unknown": "3,525",
+            "unknown": "3,575",
             "unknown_2": "71"
         },
         "Vampire's Set": {
-            "unknown": "3,250"
+            "unknown": "3,275"
         },
         "Sakura Set": {
-            "unknown": "2,710"
+            "unknown": "2,730"
         },
         "Sun Set": {
             "unknown": "1,750"
@@ -2665,7 +2665,7 @@
             "unknown": "1,100"
         },
         "Bauble Set": {
-            "unknown": "857"
+            "unknown": "860"
         },
         "Rainbow Set": {
             "unknown": "830"
@@ -2673,11 +2673,11 @@
         "Bloom Set": {
             "unknown": "810"
         },
+        "Xeno Set": {
+            "unknown": "570"
+        },
         "Ocean Set": {
             "unknown": "565"
-        },
-        "Xeno Set": {
-            "unknown": "560"
         },
         "Flowerwood Set": {
             "unknown": "525"
@@ -2686,7 +2686,7 @@
             "unknown": "520"
         },
         "Corrupt Set": {
-            "unknown": "465"
+            "unknown": "447"
         },
         "Bow Set": {
             "unknown": "410"
@@ -2694,11 +2694,11 @@
         "Sweet Set": {
             "unknown": "305"
         },
-        "Beach Set": {
-            "unknown": "290"
-        },
         "Borealis Set": {
             "unknown": "285"
+        },
+        "Beach Set": {
+            "unknown": "270"
         },
         "Full Ice Set": {
             "unknown": "258"
@@ -2863,12 +2863,12 @@
             "unknown": "191"
         },
         "Full Luger Set": {
-            "unknown": "180"
-        },
-        "Luger Set": {
-            "unknown": "130"
+            "unknown": "177"
         },
         "Sparkle Set": {
+            "unknown": "127"
+        },
+        "Luger Set": {
             "unknown": "127"
         },
         "Vintage Set": {
@@ -2893,7 +2893,7 @@
             "unknown": "14"
         },
         "Small Set": {
-            "unknown": "1,295",
+            "unknown": "1,290",
             "unknown_2": "1,260"
         },
         "Full Chroma Set": {
@@ -2903,7 +2903,7 @@
             "unknown": "535"
         },
         "Corrupt": {
-            "unknown": "425"
+            "unknown": "410"
         },
         "Sharkseeker": {
             "unknown": "untradable"

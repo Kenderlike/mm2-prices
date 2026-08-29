@@ -407,7 +407,7 @@
                 "godly_chroma": "5,600"
             },
             "Vampire's": {
-                "godly_chroma": "1,950"
+                "godly_chroma": "2,000"
             },
             "Rainbow": {
                 "godly_chroma": "420",
@@ -811,19 +811,19 @@
             "godly_chroma": "3,450"
         },
         "Evergreen": {
-            "godly_chroma": "2,700"
+            "godly_chroma": "2,800"
         },
         "Constellation": {
             "godly_chroma": "2,700"
         },
         "Alienbeam": {
-            "godly_chroma": "2,650"
+            "godly_chroma": "2,600"
         },
         "Turkey": {
-            "godly_chroma": "2,425"
+            "godly_chroma": "2,400"
         },
         "Ray": {
-            "godly_chroma": "2,150"
+            "godly_chroma": "2,100"
         },
         "Darkshot": {
             "godly_chroma": "1,800"
@@ -840,16 +840,16 @@
             "godly_chroma": "1,360"
         },
         "Sunrise": {
-            "godly_chroma": "1,200"
+            "godly_chroma": "1,300"
         },
         "Snowcannon": {
-            "godly_chroma": "850"
-        },
-        "Bauble": {
             "godly_chroma": "825"
         },
+        "Bauble": {
+            "godly_chroma": "800"
+        },
         "Sunset": {
-            "godly_chroma": "700",
+            "godly_chroma": "750",
             "rare": "x3 T1"
         },
         "Soul": {
@@ -876,15 +876,15 @@
         "Black Luger": {
             "godly_chroma": "1,000,000"
         },
-        "Heart Wand": {
-            "godly_chroma": "340"
-        },
         "Xeno": {
-            "godly_chroma": "325",
+            "godly_chroma": "350",
             "unknown": "untradable"
         },
         "Xenoshot": {
-            "godly_chroma": "325"
+            "godly_chroma": "350"
+        },
+        "Heart Wand": {
+            "godly_chroma": "340"
         },
         "Ocean": {
             "godly_chroma": "285",
@@ -907,10 +907,10 @@
             "unknown": "untradable"
         },
         "Snow Dagger": {
-            "godly_chroma": "230"
+            "godly_chroma": "220"
         },
         "Water": {
-            "godly_chroma": "230"
+            "godly_chroma": "220"
         },
         "Treat": {
             "godly_chroma": "155"
@@ -925,7 +925,7 @@
             "godly_chroma": "140"
         },
         "Icecream": {
-            "godly_chroma": "120"
+            "godly_chroma": "135"
         },
         "Bat": {
             "godly_chroma": "120",
@@ -947,12 +947,12 @@
             "godly_chroma": "80",
             "unknown": "untradable"
         },
+        "Ornament": {
+            "godly_chroma": "70",
+            "common": "x4 T1"
+        },
         "Heartblade": {
             "godly_chroma": "65"
-        },
-        "Ornament": {
-            "godly_chroma": "60",
-            "common": "x4 T1"
         },
         "Red Luger": {
             "godly_chroma": "37"
@@ -990,7 +990,7 @@
             "godly_chroma": "32"
         },
         "Luger": {
-            "godly_chroma": "28"
+            "godly_chroma": "25"
         },
         "Green Luger": {
             "godly_chroma": "23"
@@ -1211,7 +1211,7 @@
             "unknown": "untradable"
         },
         "Vampire's Axe": {
-            "ancient_evo": "1,550"
+            "ancient_evo": "1,600"
         },
         "Harvester": {
             "ancient_evo": "250"
@@ -1247,7 +1247,7 @@
             "godly_chroma": "34,000"
         },
         "C. Constellation": {
-            "godly_chroma": "30,000"
+            "godly_chroma": "31,000"
         },
         "Chroma Alienbeam": {
             "godly_chroma": "24,000"
@@ -1256,16 +1256,16 @@
             "godly_chroma": "14,000"
         },
         "Chroma Sunrise": {
-            "godly_chroma": "13,000"
+            "godly_chroma": "12,750"
         },
         "Chroma Sunset": {
-            "godly_chroma": "8,750"
+            "godly_chroma": "8,500"
         },
         "Chroma Snowcannon": {
             "godly_chroma": "7,750"
         },
         "Chroma Blizzard": {
-            "godly_chroma": "5,250"
+            "godly_chroma": "5,000"
         },
         "Chroma Snowstorm": {
             "godly_chroma": "4,250"
@@ -1280,22 +1280,22 @@
             "godly_chroma": "2,500"
         },
         "Chroma Treat": {
-            "godly_chroma": "2,100"
+            "godly_chroma": "2,050"
         },
         "Chroma Sweet": {
-            "godly_chroma": "1,950"
+            "godly_chroma": "1,900"
         },
         "Chroma Ornament": {
             "godly_chroma": "1,800"
         },
         "Chroma Icecream": {
-            "godly_chroma": "1,350"
+            "godly_chroma": "1,450"
         },
         "Chroma Sands": {
-            "godly_chroma": "1,300"
+            "godly_chroma": "1,350"
         },
         "Chroma Beachy": {
-            "godly_chroma": "1,250"
+            "godly_chroma": "1,300"
         },
         "Chroma Darkbringer": {
             "godly_chroma": "65"
@@ -1426,7 +1426,7 @@
             "unknown_4": "3"
         },
         "Black Cat": {
-            "unknown": "70"
+            "unknown": "75"
         },
         "Green Pumpkin": {
             "unknown": "60",
@@ -1731,7 +1731,7 @@
             "unknown": "untradable"
         },
         "Dungeon": {
-            "rare": "170"
+            "rare": "165"
         },
         "Dark": {
             "rare": "70",
@@ -2610,19 +2610,19 @@
             "unknown": "35,800"
         },
         "Chroma Sun Set": {
-            "unknown": "21,750"
+            "unknown": "21,250"
         },
         "Chroma Snow Set": {
             "unknown": "10,250"
         },
         "Chroma Blizzard Set": {
-            "unknown": "9,500"
+            "unknown": "9,250"
         },
         "Chroma Sweet Set": {
-            "unknown": "4,050"
+            "unknown": "3,950"
         },
         "Chroma Beach Set": {
-            "unknown": "2,550"
+            "unknown": "2,650"
         },
         "Chroma Bringer Set": {
             "unknown": "125"
@@ -2637,35 +2637,35 @@
             "unknown": "13,700"
         },
         "Ever Set": {
-            "unknown": "6,150"
+            "unknown": "6,250"
         },
         "Celestial Set": {
             "unknown": "5,150"
         },
         "Alien Set": {
-            "unknown": "4,800"
+            "unknown": "4,700"
+        },
+        "Vampire's Set": {
+            "unknown": "3,600"
         },
         "Dark Set": {
             "unknown": "3,575",
             "unknown_2": "71"
         },
-        "Vampire's Set": {
-            "unknown": "3,500"
-        },
         "Sakura Set": {
             "unknown": "2,730"
         },
         "Sun Set": {
-            "unknown": "1,900"
+            "unknown": "2,050"
         },
         "Soul Set": {
             "unknown": "1,220"
         },
         "Snow Set": {
-            "unknown": "1,080"
+            "unknown": "1,045"
         },
         "Bauble Set": {
-            "unknown": "885"
+            "unknown": "870"
         },
         "Rainbow Set": {
             "unknown": "830"
@@ -2674,7 +2674,7 @@
             "unknown": "810"
         },
         "Xeno Set": {
-            "unknown": "650"
+            "unknown": "700"
         },
         "Ocean Set": {
             "unknown": "565"
@@ -2689,7 +2689,7 @@
             "unknown": "410"
         },
         "Corrupt Set": {
-            "unknown": "378"
+            "unknown": "375"
         },
         "Sweet Set": {
             "unknown": "305"
@@ -2863,13 +2863,13 @@
             "unknown": "191"
         },
         "Full Luger Set": {
-            "unknown": "168"
+            "unknown": "165"
         },
         "Sparkle Set": {
             "unknown": "127"
         },
         "Luger Set": {
-            "unknown": "118"
+            "unknown": "115"
         },
         "Vintage Set": {
             "unknown": "59"
@@ -2893,8 +2893,8 @@
             "unknown": "14"
         },
         "Small Set": {
-            "unknown": "1,285",
-            "unknown_2": "1,250"
+            "unknown": "1,280",
+            "unknown_2": "1,245"
         },
         "Full Chroma Set": {
             "unknown": "555"

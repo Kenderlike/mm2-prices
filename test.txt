@@ -210,6 +210,20 @@ local function parseNumericPrice(val)
     return 0
 end
 
+-- ФИЛЬТР ПРИЗРАКОВ: Жесткая проверка видимости всех слоев папок
+local function isActuallyVisible(gui)
+    local current = gui
+    while current and current ~= game do
+        if current:IsA("GuiObject") and not current.Visible then
+            return false
+        elseif current:IsA("ScreenGui") and not current.Enabled then
+            return false
+        end
+        current = current.Parent
+    end
+    return true
+end
+
 local PlayerGui = LocalPlayer:WaitForChild("PlayerGui")
 local activeLabels = {}
 local allTextLabels = {}
@@ -243,33 +257,31 @@ task.spawn(function()
             local theirItems = {}
             local processedCells = {}
             
-            -- 1. НАХОДИМ ТЕКСТЫ И СОХРАНЯЕМ НИКНЕЙМ
             local yoLabel, toLabel
             local theirSuffix = ""
             
             for label, _ in pairs(allTextLabels) do
-                if label.Parent and label.Visible then
+                -- Отсеиваем скрытые заголовки
+                if isActuallyVisible(label) then
                     local txt = tostring(label.Text)
                     if txt:match("^YOUR OFFER") then 
                         yoLabel = label
                     elseif txt:match("^THEIR OFFER") then 
                         toLabel = label
-                        -- Аккуратно вырезаем никнейм (всё, что в скобках в конце строки)
                         local suffix = txt:match("(%s*%([^%)]+%))$")
                         if suffix then theirSuffix = suffix end
                     end
                 end
             end
 
-            -- 2. СТРОИМ НЕВИДИМЫЕ ГРАНИЦЫ ОКНА ТРЕЙДА (Абсолютная геометрия)
             local tradeActive = (yoLabel ~= nil and toLabel ~= nil)
             local tradeMinX = tradeActive and (yoLabel.AbsolutePosition.X - 100) or 0
             local tradeMaxX = tradeActive and (yoLabel.AbsolutePosition.X + 800) or 0
             local tradeMidY = tradeActive and (toLabel.AbsolutePosition.Y) or 0
 
-            -- 3. СЧИТАЕМ СКИНЫ ПО КООРДИНАТАМ
             for el, _ in pairs(activeLabels) do
-                if el.Parent and el.Visible then
+                -- ГЛАВНЫЙ ФИКС: Если папка скрыта - игнорируем! Больше никакого инвентаря в трейде.
+                if isActuallyVisible(el) then
                     local text = tostring(el.Text)
                     if text and #text > 0 and #text < 35 and text ~= "Loading" then
                         local cleanLower = getCleanNameLower(text)
@@ -284,15 +296,12 @@ task.spawn(function()
                             if price ~= nil then
                                 local slotFrame, container = findSlotData(el)
                                 
-                                if slotFrame and slotFrame.Visible then
-                                    -- Если мы в трейде, проверяем, лежит ли скин в наших границах
+                                if slotFrame and isActuallyVisible(slotFrame) then
                                     if tradeActive then
                                         local sx = slotFrame.AbsolutePosition.X
                                         local sy = slotFrame.AbsolutePosition.Y
                                         
-                                        -- Выравнивание по X (отсекаем левый инвентарь)
                                         if sx >= tradeMinX and sx <= tradeMaxX then
-                                            -- Защита от мусора: скин должен быть ниже заголовка YOUR OFFER
                                             if sy >= (yoLabel.AbsolutePosition.Y - 50) then
                                                 
                                                 if not processedCells[slotFrame] then
@@ -311,7 +320,6 @@ task.spawn(function()
                                                     local priceStr = tostring(numPrice)
                                                     local itemDisplay = priceStr .. (qty > 1 and ("("..qty..")") or "")
                                                     
-                                                    -- Если скин физически выше текста THEIR OFFER - он твой
                                                     if sy < tradeMidY then
                                                         yourSum = yourSum + (numPrice * qty)
                                                         table.insert(yourItems, itemDisplay)
@@ -324,7 +332,6 @@ task.spawn(function()
                                         end
                                     end
                                     
-                                    -- Ценник вешаем в любом случае
                                     updatePriceTag(container or slotFrame, price)
                                 end
                             end
@@ -333,7 +340,6 @@ task.spawn(function()
                 end
             end
 
-            -- 4. ВПИСЫВАЕМ СУММУ И ВОЗВРАЩАЕМ НИКНЕЙМ НА МЕСТО
             table.sort(yourItems)
             table.sort(theirItems)
 
@@ -341,13 +347,12 @@ task.spawn(function()
             local tString = #theirItems > 0 and (table.concat(theirItems, " + ") .. " = " .. tostring(theirSum)) or "0"
 
             for label, _ in pairs(allTextLabels) do
-                if label.Parent and label.Visible then
+                if isActuallyVisible(label) then
                     local txt = tostring(label.Text)
                     if txt:match("^YOUR OFFER") then 
                         local newTxt = "YOUR OFFER • " .. yString
                         if label.Text ~= newTxt then label.Text = newTxt end
                     elseif txt:match("^THEIR OFFER") then 
-                        -- Добавляем никнейм обратно!
                         local newTxt = "THEIR OFFER • " .. tString .. theirSuffix
                         if label.Text ~= newTxt then label.Text = newTxt end
                     end

@@ -1,0 +1,353 @@
+local HttpService = game:GetService("HttpService")
+local Players = game:GetService("Players")
+local LocalPlayer = Players.LocalPlayer
+
+-- === 1. БАЗА ЦЕН ===
+local PRICES_URL = "https://raw.githubusercontent.com/Kenderlike/mm2-prices/refs/heads/main/prices.json"
+local itemPrices = {}
+local itemPricesLowerCase = {}
+local knownNames = {} 
+local cleanNameCache = {} 
+local pricesLoaded = false
+
+local RARITY_COLORS = {
+    common = Color3.fromRGB(106, 106, 106),
+    uncommon = Color3.fromRGB(0, 255, 255),
+    rare = Color3.fromRGB(0, 200, 0),
+    legendary = Color3.fromRGB(220, 0, 5),
+    godly_chroma = Color3.fromRGB(255, 0, 179),
+    vintage = Color3.fromRGB(230, 200, 0),
+    ancient_evo = Color3.fromRGB(100, 10, 255)
+}
+
+local function cleanName(name)
+    local s = tostring(name):gsub("%s*%b()%s*$", "")
+    return s:match("^%s*(.-)%s*$") or s
+end
+
+local function getCleanNameLower(text)
+    if cleanNameCache[text] then return cleanNameCache[text] end
+    local clean = cleanName(text):lower()
+    cleanNameCache[text] = clean
+    return clean
+end
+
+local colorCache = {}
+local function getRarity(color3)
+    if not color3 then return "unknown" end
+    
+    local r, g, b = math.round(color3.R*255), math.round(color3.G*255), math.round(color3.B*255)
+    local cacheKey = r .. "," .. g .. "," .. b
+    
+    if colorCache[cacheKey] then return colorCache[cacheKey] end
+    
+    local best = "unknown"
+    local minDistSq = math.huge
+    
+    for rarity, ref in pairs(RARITY_COLORS) do
+        local refR, refG, refB = math.round(ref.R*255), math.round(ref.G*255), math.round(ref.B*255)
+        local distSq = (r - refR)^2 + (g - refG)^2 + (b - refB)^2
+        
+        if distSq < minDistSq then
+            minDistSq = distSq
+            best = rarity
+        end
+    end
+    
+    local finalRarity = (minDistSq < 225) and best or "unknown"
+    colorCache[cacheKey] = finalRarity
+    return finalRarity
+end
+
+task.spawn(function()
+    local decoded = nil
+    for i = 1, 5 do
+        local success, result = pcall(function() return game:HttpGet(PRICES_URL) end)
+        if success then
+            local ok, json = pcall(function() return HttpService:JSONDecode(result) end)
+            if ok and type(json) == "table" then
+                decoded = json
+                break
+            end
+        end
+        task.wait(2)
+    end
+
+    if decoded then
+        local function flattenPrices(tbl)
+            for key, value in pairs(tbl) do
+                if type(value) == "table" then
+                    local isRarities = false
+                    for k, _ in pairs(value) do
+                        if RARITY_COLORS[k] then isRarities = true break end
+                    end
+
+                    if isRarities then
+                        knownNames[key:lower()] = true
+                        knownNames[cleanName(key):lower()] = true
+                        
+                        for rarity, price in pairs(value) do
+                            local combinedKey = key .. "_" .. rarity
+                            itemPrices[combinedKey] = price
+                            itemPricesLowerCase[combinedKey:lower()] = price
+                        end
+                    else
+                        flattenPrices(value)
+                    end
+                else
+                    knownNames[key:lower()] = true
+                    knownNames[cleanName(key):lower()] = true
+                    itemPrices[key] = value
+                    itemPricesLowerCase[key:lower()] = value
+                end
+            end
+        end
+
+        flattenPrices(decoded)
+        pricesLoaded = true
+        print("✅ [MM2] База загружена! Ценники активны.")
+    end
+end)
+
+-- === 2. ЦЕННИКИ НА ПРЕДМЕТАХ ===
+local function getPrice(rawName, rarity)
+    if type(rawName) ~= "string" or rawName == "" then return nil end
+    local name = cleanName(rawName)
+    local checkKeys = {name .. "_" .. rarity, rawName .. "_" .. rarity, name .. "_unknown", name, rawName}
+
+    for _, key in ipairs(checkKeys) do
+        if itemPrices[key] ~= nil then return itemPrices[key] end
+        if itemPricesLowerCase[key:lower()] ~= nil then return itemPricesLowerCase[key:lower()] end
+    end
+    
+    local searchName = name:lower() .. "_"
+    for key, val in pairs(itemPricesLowerCase) do
+        if type(key) == "string" and string.sub(key, 1, #searchName) == searchName then
+            return val
+        end
+    end
+    
+    return nil
+end
+
+local function updatePriceTag(element, price, overrideTarget)
+    local targetFrame = overrideTarget
+    
+    -- Если overrideTarget не указан (для инвентаря), ищем стандартную карточку
+    if not targetFrame then
+        local parentFrame = element.Parent
+        if not parentFrame then return end
+        
+        targetFrame = parentFrame.Parent
+        if not targetFrame or not targetFrame:IsA("GuiObject") or targetFrame.AbsoluteSize.X > 350 or targetFrame.AbsoluteSize.Y > 350 then
+            targetFrame = parentFrame 
+        end
+    end
+
+    local tag = targetFrame:FindFirstChild("MM2_PriceTag")
+    if not tag then
+        tag = Instance.new("TextLabel")
+        tag.Name = "MM2_PriceTag"
+        tag.Size = UDim2.new(1, 0, 0, 20)
+        
+        -- Если мы крепим на Icon в трейде, центрируем плашку
+        if overrideTarget then
+            tag.Position = UDim2.new(0.5, 0, 0, 2)
+            tag.AnchorPoint = Vector2.new(0.5, 0)
+        else
+            tag.Position = UDim2.new(0, 0, 0, 2)
+            tag.AnchorPoint = Vector2.new(0, 0)
+        end
+        
+        tag.TextXAlignment = Enum.TextXAlignment.Center
+        tag.TextYAlignment = Enum.TextYAlignment.Top
+        tag.BackgroundTransparency = 1 
+        tag.TextStrokeTransparency = 0 
+        tag.TextSize = 16
+        tag.Font = Enum.Font.GothamBlack
+        tag.ZIndex = 99999
+        tag.Visible = true
+        tag.BorderSizePixel = 0
+        tag.Parent = targetFrame
+    end
+
+    local targetText, targetColor
+    if type(price) == "number" then
+        targetText = price == 0 and "0" or tostring(price)
+        targetColor = price == 0 and Color3.fromRGB(200, 100, 100) or Color3.fromRGB(46, 204, 113)
+    elseif type(price) == "string" then
+        targetText = price
+        targetColor = price == "untradable" and Color3.fromRGB(150, 150, 150) or Color3.fromRGB(255, 200, 100)
+    else
+        if tag then tag:Destroy() end return
+    end
+
+    if tag.Text ~= targetText then tag.Text = targetText end
+    if tag.TextColor3 ~= targetColor then tag.TextColor3 = targetColor end
+end
+
+local function extractRarity(element)
+    local p = element.Parent
+    if p and p:IsA("GuiObject") and p.BackgroundTransparency < 1 then
+        return getRarity(p:IsA("Frame") and p.BackgroundColor3 or p.ImageColor3)
+    end
+    return "unknown"
+end
+
+local function parseNumericPrice(val)
+    if type(val) == "number" then return val end
+    if type(val) == "string" then
+        local str = val:lower():gsub(",", ""):gsub(" ", "")
+        local mult = 1
+        if str:match("k$") then 
+            mult = 1000
+            str = str:gsub("k$", "")
+        elseif str:match("m$") then 
+            mult = 1000000
+            str = str:gsub("m$", "")
+        end
+        return tonumber(str) or 0
+    end
+    return 0
+end
+
+-- === 3. ЦИКЛ ОБНОВЛЕНИЯ ИНТЕРФЕЙСА ===
+local PlayerGui = LocalPlayer:WaitForChild("PlayerGui")
+local activeLabels = {}
+local allTextLabels = {}
+
+local function checkAndCacheUI(desc)
+    if desc:IsA("TextLabel") and desc.Name ~= "MM2_PriceTag" then
+        allTextLabels[desc] = true
+        local p = desc.Parent
+        if p and (p:IsA("Frame") or p:IsA("ImageLabel") or p:IsA("ImageButton")) then
+            activeLabels[desc] = true
+        end
+    end
+end
+
+for _, desc in ipairs(PlayerGui:GetDescendants()) do checkAndCacheUI(desc) end
+PlayerGui.DescendantAdded:Connect(checkAndCacheUI)
+PlayerGui.DescendantRemoving:Connect(function(desc)
+    if activeLabels[desc] then activeLabels[desc] = nil end
+    if allTextLabels[desc] then allTextLabels[desc] = nil end
+end)
+
+task.spawn(function()
+    while not pricesLoaded do task.wait(0.5) end
+
+    while task.wait(0.5) do
+        local success, err = pcall(function()
+            local yourSum = 0
+            local theirSum = 0
+            
+            local yourItems = {}
+            local theirItems = {}
+            local processedCells = {}
+            
+            local tradeWindow
+            for _, gui in ipairs(PlayerGui:GetDescendants()) do
+                if gui:IsA("Frame") and gui.Name == "Trade" and gui.Visible and gui.AbsolutePosition.X > 0 then
+                    tradeWindow = gui
+                    break
+                end
+            end
+
+            local yourOfferFrame = tradeWindow and tradeWindow:FindFirstChild("YourOffer")
+            local theirOfferFrame = tradeWindow and tradeWindow:FindFirstChild("TheirOffer")
+
+            for el, _ in pairs(activeLabels) do
+                if el.Parent and el.Visible and el.AbsolutePosition.X > 0 then
+                    local text = tostring(el.Text)
+                    if text and #text > 0 and #text < 35 and text ~= "Loading" then
+                        local cleanLower = getCleanNameLower(text)
+                        
+                        if knownNames[text:lower()] or knownNames[cleanLower] then
+                            local rarity = extractRarity(el)
+                            local cleanRaw = text:gsub("<[^>]+>", ""):match("^%s*(.-)%s*$") or text
+                            
+                            local price = getPrice(cleanRaw, rarity)
+                            if not price then price = getPrice(cleanRaw, "unknown") end
+                            
+                            if price ~= nil then
+                                local isTradeItem = tradeWindow and el:IsDescendantOf(tradeWindow)
+                                
+                                if isTradeItem then
+                                    local newItem = el.Parent
+                                    while newItem and newItem.Name ~= "Trade" do
+                                        if newItem:IsA("Frame") and string.match(newItem.Name, "^NewItem") then break end
+                                        newItem = newItem.Parent
+                                    end
+                                    
+                                    -- Защита от "призрачных" цен: проверяем, что слот предмета действительно открыт
+                                    if newItem and newItem.Visible then
+                                        local iconTarget = nil
+                                        local infoContainer = newItem:FindFirstChild("Container")
+                                        if infoContainer then
+                                            iconTarget = infoContainer:FindFirstChild("Icon")
+                                        end
+                                        
+                                        if not processedCells[newItem] then
+                                            processedCells[newItem] = true
+                                            
+                                            local qty = 1
+                                            if infoContainer then
+                                                local amountLabel = infoContainer:FindFirstChild("Amount")
+                                                if amountLabel and amountLabel.Text and amountLabel.Text ~= ".." and amountLabel.Text ~= "" then
+                                                    local numStr = amountLabel.Text:match("%d+")
+                                                    if numStr then qty = tonumber(numStr) or 1 end
+                                                end
+                                            end
+                                            
+                                            local numPrice = parseNumericPrice(price)
+                                            local priceStr = tostring(numPrice)
+                                            
+                                            local itemDisplay = priceStr .. (qty > 1 and ("("..qty..")") or "")
+                                            
+                                            if yourOfferFrame and el:IsDescendantOf(yourOfferFrame) then
+                                                yourSum = yourSum + (numPrice * qty)
+                                                table.insert(yourItems, itemDisplay)
+                                            elseif theirOfferFrame and el:IsDescendantOf(theirOfferFrame) then
+                                                theirSum = theirSum + (numPrice * qty)
+                                                table.insert(theirItems, itemDisplay)
+                                            end
+                                        end
+                                        
+                                        updatePriceTag(el, price, iconTarget)
+                                    end
+                                else
+                                    updatePriceTag(el, price, nil)
+                                end
+                            end
+                        end
+                    end
+                end
+            end
+
+            table.sort(yourItems)
+            table.sort(theirItems)
+
+            -- Формирование уравнения с пробелами (например: 35 + x2 T1 = ...)
+            local yString = #yourItems > 0 and (table.concat(yourItems, " + ") .. " = " .. tostring(yourSum)) or "0"
+            local tString = #theirItems > 0 and (table.concat(theirItems, " + ") .. " = " .. tostring(theirSum)) or "0"
+
+            for label, _ in pairs(allTextLabels) do
+                if label.Parent and label.Visible and label.AbsolutePosition.X > 0 then
+                    local txt = tostring(label.Text)
+                    if txt == "YOUR OFFER" or txt:match("^YOUR OFFER •") then 
+                        local newTxt = "YOUR OFFER • " .. yString
+                        if label.Text ~= newTxt then label.Text = newTxt end
+                    elseif txt == "THEIR OFFER" or txt:match("^THEIR OFFER •") then 
+                        local newTxt = "THEIR OFFER • " .. tString
+                        if label.Text ~= newTxt then label.Text = newTxt end
+                    end
+                end
+            end
+            
+        end)
+        
+        if not success then
+            warn("[MM2 Prices] Ошибка парсинга: " .. tostring(err))
+        end
+    end
+end)

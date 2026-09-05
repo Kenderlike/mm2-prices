@@ -243,21 +243,29 @@ task.spawn(function()
             local theirItems = {}
             local processedCells = {}
             
-            local tradeWindow, yourOfferFrame, theirOfferFrame
-            
-            -- РЕШЕНИЕ ПРОБЛЕМЫ КАЛЬКУЛЯТОРА НА МОБИЛЬНЫХ УСТРОЙСТВАХ
-            -- Используем флаг true для рекурсивного поиска внутри SafeArea
-            for _, gui in ipairs(PlayerGui:GetDescendants()) do
-                if gui:IsA("Frame") and gui.Name == "Trade" and gui.Visible then
-                    local yo = gui:FindFirstChild("YourOffer", true)
-                    local to = gui:FindFirstChild("TheirOffer", true)
-                    
-                    if yo and to then
-                        tradeWindow = gui
-                        yourOfferFrame = yo
-                        theirOfferFrame = to
+            -- ПРОСТРАНСТВЕННЫЙ ПОИСК ОКНА ТРЕЙДА
+            local yoLabel, toLabel
+            for label, _ in pairs(allTextLabels) do
+                if label.Parent and label.Visible then
+                    local txt = tostring(label.Text)
+                    if txt == "YOUR OFFER" or txt:match("^YOUR OFFER •") then 
+                        yoLabel = label
+                    elseif txt == "THEIR OFFER" or txt:match("^THEIR OFFER •") then 
+                        toLabel = label
+                    end
+                end
+            end
+
+            -- Ищем главный контейнер трейда (общий родитель для обоих текстов)
+            local tradeWindow = nil
+            if yoLabel and toLabel then
+                local curr = yoLabel.Parent
+                while curr and not curr:IsA("ScreenGui") do
+                    if toLabel:IsDescendantOf(curr) then
+                        tradeWindow = curr
                         break
                     end
+                    curr = curr.Parent
                 end
             end
 
@@ -276,15 +284,14 @@ task.spawn(function()
                             
                             if price ~= nil then
                                 local slotFrame, container = findSlotData(el)
-                                local isTradeItem = tradeWindow and el:IsDescendantOf(tradeWindow)
                                 
-                                if isTradeItem and slotFrame and slotFrame.Visible then
+                                -- Если предмет лежит внутри окна трейда (исключает инвентарь)
+                                if tradeWindow and slotFrame and slotFrame.Visible and slotFrame:IsDescendantOf(tradeWindow) then
                                     if not processedCells[slotFrame] then
                                         processedCells[slotFrame] = true
                                         
                                         local qty = 1
                                         if container then
-                                            -- Рекурсивный поиск количества предметов (если мобильный интерфейс его запрятал)
                                             local amountLabel = container:FindFirstChild("Amount", true)
                                             if amountLabel and amountLabel.Text and amountLabel.Text ~= ".." and amountLabel.Text ~= "" then
                                                 local numStr = amountLabel.Text:match("%d+")
@@ -296,10 +303,11 @@ task.spawn(function()
                                         local priceStr = tostring(numPrice)
                                         local itemDisplay = priceStr .. (qty > 1 and ("("..qty..")") or "")
                                         
-                                        if yourOfferFrame and slotFrame:IsDescendantOf(yourOfferFrame) then
+                                        -- ПРОСТРАНСТВЕННАЯ СОРТИРОВКА: Сравниваем высоту предмета с разделителем "THEIR OFFER"
+                                        if slotFrame.AbsolutePosition.Y < toLabel.AbsolutePosition.Y then
                                             yourSum = yourSum + (numPrice * qty)
                                             table.insert(yourItems, itemDisplay)
-                                        elseif theirOfferFrame and slotFrame:IsDescendantOf(theirOfferFrame) then
+                                        else
                                             theirSum = theirSum + (numPrice * qty)
                                             table.insert(theirItems, itemDisplay)
                                         end

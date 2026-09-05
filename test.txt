@@ -243,7 +243,7 @@ task.spawn(function()
             local theirItems = {}
             local processedCells = {}
             
-            -- 1. ИЩЕМ ЗАГОЛОВКИ ТРЕЙДА (Точки опоры)
+            -- 1. НАХОДИМ ОПОРНЫЕ ТОЧКИ ТРЕЙДА
             local yoLabel, toLabel
             for label, _ in pairs(allTextLabels) do
                 if label.Parent and label.Visible then
@@ -256,17 +256,24 @@ task.spawn(function()
                 end
             end
 
-            -- 2. ВЫЧИСЛЯЕМ ПРОСТРАНСТВО ТРЕЙД-ОКНА
-            local midY, tradeMinX, tradeMaxX
+            -- 2. ВЫЧИСЛЯЕМ ОБЩЕЕ ПРОСТРАНСТВО ОКНА ТРЕЙДА
+            local tradeWindow = nil
+            local tradeMidY = 0
+            
             if yoLabel and toLabel then
-                -- Горизонтальная линия, разделяющая твои предметы и предметы оппонента
-                midY = (yoLabel.AbsolutePosition.Y + toLabel.AbsolutePosition.Y) / 2
+                tradeMidY = (yoLabel.AbsolutePosition.Y + toLabel.AbsolutePosition.Y) / 2
                 
-                -- Окно трейда всегда находится правее инвентаря
-                tradeMinX = yoLabel.AbsolutePosition.X - 150
-                tradeMaxX = yoLabel.AbsolutePosition.X + 1200 
+                local curr = yoLabel.Parent
+                while curr and curr.Parent and not curr:IsA("ScreenGui") do
+                    if toLabel:IsDescendantOf(curr) then
+                        tradeWindow = curr
+                        break
+                    end
+                    curr = curr.Parent
+                end
             end
 
+            -- 3. СКАНИРОВАНИЕ ПРЕДМЕТОВ
             for el, _ in pairs(activeLabels) do
                 if el.Parent and el.Visible then
                     local text = tostring(el.Text)
@@ -284,13 +291,9 @@ task.spawn(function()
                                 local slotFrame, container = findSlotData(el)
                                 
                                 if slotFrame and slotFrame.Visible then
-                                    -- 3. ГЕОМЕТРИЧЕСКИЙ КАЛЬКУЛЯТОР
-                                    if midY and not processedCells[slotFrame] then
-                                        local slotX = slotFrame.AbsolutePosition.X
-                                        local slotY = slotFrame.AbsolutePosition.Y
-                                        
-                                        -- Если предмет физически находится в зоне окна трейда
-                                        if slotX > 0 and slotX >= tradeMinX and slotX <= tradeMaxX then
+                                    -- Если предмет физически находится ВНУТРИ главного окна трейда
+                                    if tradeWindow and tradeMidY > 0 and slotFrame:IsDescendantOf(tradeWindow) then
+                                        if not processedCells[slotFrame] then
                                             processedCells[slotFrame] = true
                                             
                                             local qty = 1
@@ -306,8 +309,10 @@ task.spawn(function()
                                             local priceStr = tostring(numPrice)
                                             local itemDisplay = priceStr .. (qty > 1 and ("("..qty..")") or "")
                                             
-                                            -- Если предмет выше разделительной линии — он твой
-                                            if slotY < midY then
+                                            local slotY = slotFrame.AbsolutePosition.Y
+                                            
+                                            -- Геометрическое разделение: выше экватора - твое, ниже - чужое
+                                            if slotY < tradeMidY then
                                                 yourSum = yourSum + (numPrice * qty)
                                                 table.insert(yourItems, itemDisplay)
                                             else
@@ -317,7 +322,6 @@ task.spawn(function()
                                         end
                                     end
                                     
-                                    -- Ценник обновляется всегда, даже в инвентаре
                                     updatePriceTag(container or slotFrame, price)
                                 end
                             end
@@ -326,21 +330,24 @@ task.spawn(function()
                 end
             end
 
+            -- 4. ПРИНУДИТЕЛЬНОЕ ОБНОВЛЕНИЕ ВСЕХ СЛОЕВ ТЕКСТА (вкл. тени)
             table.sort(yourItems)
             table.sort(theirItems)
 
             local yString = #yourItems > 0 and (table.concat(yourItems, " + ") .. " = " .. tostring(yourSum)) or "0"
             local tString = #theirItems > 0 and (table.concat(theirItems, " + ") .. " = " .. tostring(theirSum)) or "0"
 
-            -- 4. ОБНОВЛЯЕМ ЗАГОЛОВКИ
-            if yoLabel then
-                local newTxt = "YOUR OFFER • " .. yString
-                if yoLabel.Text ~= newTxt then yoLabel.Text = newTxt end
-            end
-            
-            if toLabel then
-                local newTxt = "THEIR OFFER • " .. tString
-                if toLabel.Text ~= newTxt then toLabel.Text = newTxt end
+            for label, _ in pairs(allTextLabels) do
+                if label.Parent and label.Visible then
+                    local txt = tostring(label.Text)
+                    if txt == "YOUR OFFER" or txt:match("^YOUR OFFER •") then 
+                        local newTxt = "YOUR OFFER • " .. yString
+                        if label.Text ~= newTxt then label.Text = newTxt end
+                    elseif txt == "THEIR OFFER" or txt:match("^THEIR OFFER •") then 
+                        local newTxt = "THEIR OFFER • " .. tString
+                        if label.Text ~= newTxt then label.Text = newTxt end
+                    end
+                end
             end
             
         end)

@@ -130,41 +130,48 @@ local function getPrice(rawName, rarity)
     return nil
 end
 
-local function updatePriceTag(element, price, overrideTarget)
-    local targetFrame = overrideTarget
+-- Надежный поиск главного слота предмета
+local function getSlotFrame(label)
+    local current = label
+    for i = 1, 4 do
+        if not current then break end
+        if current:FindFirstChild("Container") and current:IsA("GuiObject") then
+            return current
+        end
+        current = current.Parent
+    end
+    return nil
+end
+
+local function updatePriceTag(element, price)
+    local targetFrame = getSlotFrame(element)
     
-    -- Надежный поиск карточки предмета (без ложных срабатываний на телефонах)
     if not targetFrame then
-        local current = element
-        if current.Parent and current.Parent.Name == "Container" then
-            targetFrame = current.Parent.Parent
-        else
-            targetFrame = current.Parent
-        end
-        
-        -- Защита от привязки к интерфейсу окна трейда (если карточка больше 150px)
-        if targetFrame and targetFrame:IsA("GuiObject") and (targetFrame.AbsoluteSize.X > 150 or targetFrame.AbsoluteSize.Y > 150) then
-            targetFrame = element.Parent
-        end
+        targetFrame = element.Parent and element.Parent.Parent
     end
 
     if not targetFrame or not targetFrame:IsA("GuiObject") then return end
+
+    -- Защита от привязки к огромным контейнерам сетки
+    if targetFrame.AbsoluteSize.X > 250 or targetFrame.AbsoluteSize.Y > 250 then
+        targetFrame = element.Parent
+    end
 
     local tag = targetFrame:FindFirstChild("MM2_PriceTag")
     if not tag then
         tag = Instance.new("TextLabel")
         tag.Name = "MM2_PriceTag"
-        tag.Size = UDim2.new(1, 0, 0, 16)
+        tag.Size = UDim2.new(1, 0, 0, 18)
         
-        -- Привязка строго по центру вверху фрейма
+        -- Идеальное центрирование в самом верху квадратного слота
         tag.Position = UDim2.new(0.5, 0, 0, 2)
         tag.AnchorPoint = Vector2.new(0.5, 0)
         
         tag.TextXAlignment = Enum.TextXAlignment.Center
         tag.TextYAlignment = Enum.TextYAlignment.Top
         tag.BackgroundTransparency = 1 
-        tag.TextStrokeTransparency = 0.4 -- Тень для лучшей читаемости
-        tag.TextSize = 13 -- Уменьшенный шрифт для мобилок
+        tag.TextStrokeTransparency = 0.3 
+        tag.TextSize = 14
         tag.Font = Enum.Font.GothamBlack
         tag.ZIndex = 99999
         tag.Visible = true
@@ -248,7 +255,8 @@ task.spawn(function()
             
             local tradeWindow
             for _, gui in ipairs(PlayerGui:GetDescendants()) do
-                if gui:IsA("Frame") and gui.Name == "Trade" and gui.Visible and gui.AbsolutePosition.X > 0 then
+                -- ФИКС: >= 0 спасает мобильные экраны, где окно висит на нулевой координате
+                if gui:IsA("Frame") and gui.Name == "Trade" and gui.Visible and gui.AbsolutePosition.X >= 0 then
                     tradeWindow = gui
                     break
                 end
@@ -258,7 +266,8 @@ task.spawn(function()
             local theirOfferFrame = tradeWindow and tradeWindow:FindFirstChild("TheirOffer")
 
             for el, _ in pairs(activeLabels) do
-                if el.Parent and el.Visible and el.AbsolutePosition.X > 0 then
+                -- ФИКС: >= 0 для чтения элементов в мобильном трейде
+                if el.Parent and el.Visible and el.AbsolutePosition.X >= 0 then
                     local text = tostring(el.Text)
                     if text and #text > 0 and #text < 35 and text ~= "Loading" then
                         local cleanLower = getCleanNameLower(text)
@@ -280,13 +289,8 @@ task.spawn(function()
                                         newItem = newItem.Parent
                                     end
                                     
-                                    -- Защита от "призрачных" цен: проверяем, что слот предмета действительно открыт
                                     if newItem and newItem.Visible then
-                                        local iconTarget = nil
                                         local infoContainer = newItem:FindFirstChild("Container")
-                                        if infoContainer then
-                                            iconTarget = infoContainer:FindFirstChild("Icon")
-                                        end
                                         
                                         if not processedCells[newItem] then
                                             processedCells[newItem] = true
@@ -314,10 +318,11 @@ task.spawn(function()
                                             end
                                         end
                                         
-                                        updatePriceTag(el, price, iconTarget)
+                                        -- Вызов без костылей с overrideTarget
+                                        updatePriceTag(el, price)
                                     end
                                 else
-                                    updatePriceTag(el, price, nil)
+                                    updatePriceTag(el, price)
                                 end
                             end
                         end
@@ -328,12 +333,11 @@ task.spawn(function()
             table.sort(yourItems)
             table.sort(theirItems)
 
-            -- Формирование уравнения с пробелами (например: 35 + 50(2) = ...)
             local yString = #yourItems > 0 and (table.concat(yourItems, " + ") .. " = " .. tostring(yourSum)) or "0"
             local tString = #theirItems > 0 and (table.concat(theirItems, " + ") .. " = " .. tostring(theirSum)) or "0"
 
             for label, _ in pairs(allTextLabels) do
-                if label.Parent and label.Visible and label.AbsolutePosition.X > 0 then
+                if label.Parent and label.Visible and label.AbsolutePosition.X >= 0 then
                     local txt = tostring(label.Text)
                     if txt == "YOUR OFFER" or txt:match("^YOUR OFFER •") then 
                         local newTxt = "YOUR OFFER • " .. yString

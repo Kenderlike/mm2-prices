@@ -105,7 +105,6 @@ task.spawn(function()
 
         flattenPrices(decoded)
         pricesLoaded = true
-        print("✅ [MM2] База загружена! Ценники активны.")
     end
 end)
 
@@ -125,37 +124,43 @@ local function getPrice(rawName, rarity)
             return val
         end
     end
-    
     return nil
 end
 
--- Универсальный поиск главного слота (исправляет съезды ценников)
-local function getTargetFrame(element)
+-- === НАДЕЖНЫЙ ПОИСК СЛОТОВ ===
+local function findSlotData(element)
     local current = element
-    for i = 1, 4 do
+    for i = 1, 5 do
         if not current then break end
-        -- Ищем квадратный фрейм, в котором есть "Container"
-        if current:IsA("GuiObject") and current.AbsoluteSize.X < 250 and current.AbsoluteSize.Y < 250 then
-            if current:FindFirstChild("Container") or string.match(current.Name, "^NewItem") then
-                return current
+        if current:IsA("GuiObject") then
+            local container = current:FindFirstChild("Container")
+            if container then
+                -- Возвращаем и саму карточку, и её внутренний контейнер
+                return current, container
             end
         end
         current = current.Parent
     end
-    return element.Parent
+    return element.Parent, nil
 end
 
-local function updatePriceTag(element, price)
-    local targetFrame = getTargetFrame(element)
+local function updatePriceTag(targetFrame, price)
     if not targetFrame or not targetFrame:IsA("GuiObject") then return end
+
+    -- ЖЕСТКИЙ ПРЕДОХРАНИТЕЛЬ: Если рамка больше 200 пикселей, это сетка или окно. Игнорируем.
+    -- Это навсегда решит проблему "улетевших" ценников.
+    if targetFrame.AbsoluteSize.X > 200 or targetFrame.AbsoluteSize.Y > 200 then
+        return
+    end
 
     local tag = targetFrame:FindFirstChild("MM2_PriceTag")
     if not tag then
         tag = Instance.new("TextLabel")
         tag.Name = "MM2_PriceTag"
-        tag.Size = UDim2.new(1, 0, 0, 18)
+        tag.Size = UDim2.new(1, 0, 0, 16)
         
-        tag.Position = UDim2.new(0.5, 0, 0, 2)
+        -- Цепляем ровно по центру верхней части рамки
+        tag.Position = UDim2.new(0.5, 0, 0, 0)
         tag.AnchorPoint = Vector2.new(0.5, 0)
         
         tag.TextXAlignment = Enum.TextXAlignment.Center
@@ -245,7 +250,6 @@ task.spawn(function()
             
             local tradeWindow
             for _, gui in ipairs(PlayerGui:GetDescendants()) do
-                -- Убрана проверка координат. Ищем строго по имени, видимости и наличию YourOffer
                 if gui:IsA("Frame") and gui.Name == "Trade" and gui.Visible and gui:FindFirstChild("YourOffer") then
                     tradeWindow = gui
                     break
@@ -256,7 +260,6 @@ task.spawn(function()
             local theirOfferFrame = tradeWindow and tradeWindow:FindFirstChild("TheirOffer")
 
             for el, _ in pairs(activeLabels) do
-                -- Убрана проверка AbsolutePosition.X
                 if el.Parent and el.Visible then
                     local text = tostring(el.Text)
                     if text and #text > 0 and #text < 35 and text ~= "Loading" then
@@ -270,49 +273,41 @@ task.spawn(function()
                             if not price then price = getPrice(cleanRaw, "unknown") end
                             
                             if price ~= nil then
+                                -- Ищем карточку и её контейнер независимо от названия
+                                local slotFrame, container = findSlotData(el)
                                 local isTradeItem = tradeWindow and el:IsDescendantOf(tradeWindow)
                                 
-                                if isTradeItem then
-                                    local newItem = el.Parent
-                                    while newItem and newItem.Name ~= "Trade" do
-                                        if newItem:IsA("Frame") and string.match(newItem.Name, "^NewItem") then break end
-                                        newItem = newItem.Parent
-                                    end
-                                    
-                                    if newItem and newItem.Visible then
-                                        local infoContainer = newItem:FindFirstChild("Container")
+                                -- Логика калькулятора (теперь не привязана к имени NewItem)
+                                if isTradeItem and slotFrame and slotFrame.Visible then
+                                    if not processedCells[slotFrame] then
+                                        processedCells[slotFrame] = true
                                         
-                                        if not processedCells[newItem] then
-                                            processedCells[newItem] = true
-                                            
-                                            local qty = 1
-                                            if infoContainer then
-                                                local amountLabel = infoContainer:FindFirstChild("Amount")
-                                                if amountLabel and amountLabel.Text and amountLabel.Text ~= ".." and amountLabel.Text ~= "" then
-                                                    local numStr = amountLabel.Text:match("%d+")
-                                                    if numStr then qty = tonumber(numStr) or 1 end
-                                                end
-                                            end
-                                            
-                                            local numPrice = parseNumericPrice(price)
-                                            local priceStr = tostring(numPrice)
-                                            
-                                            local itemDisplay = priceStr .. (qty > 1 and ("("..qty..")") or "")
-                                            
-                                            if yourOfferFrame and el:IsDescendantOf(yourOfferFrame) then
-                                                yourSum = yourSum + (numPrice * qty)
-                                                table.insert(yourItems, itemDisplay)
-                                            elseif theirOfferFrame and el:IsDescendantOf(theirOfferFrame) then
-                                                theirSum = theirSum + (numPrice * qty)
-                                                table.insert(theirItems, itemDisplay)
+                                        local qty = 1
+                                        if container then
+                                            local amountLabel = container:FindFirstChild("Amount")
+                                            if amountLabel and amountLabel.Text and amountLabel.Text ~= ".." and amountLabel.Text ~= "" then
+                                                local numStr = amountLabel.Text:match("%d+")
+                                                if numStr then qty = tonumber(numStr) or 1 end
                                             end
                                         end
                                         
-                                        updatePriceTag(el, price)
+                                        local numPrice = parseNumericPrice(price)
+                                        local priceStr = tostring(numPrice)
+                                        local itemDisplay = priceStr .. (qty > 1 and ("("..qty..")") or "")
+                                        
+                                        if yourOfferFrame and slotFrame:IsDescendantOf(yourOfferFrame) then
+                                            yourSum = yourSum + (numPrice * qty)
+                                            table.insert(yourItems, itemDisplay)
+                                        elseif theirOfferFrame and slotFrame:IsDescendantOf(theirOfferFrame) then
+                                            theirSum = theirSum + (numPrice * qty)
+                                            table.insert(theirItems, itemDisplay)
+                                        end
                                     end
-                                else
-                                    updatePriceTag(el, price)
                                 end
+                                
+                                -- Ценник крепим строго к контейнеру (внутрь квадратной рамки), 
+                                -- чтобы он никогда не улетал за пределы предмета.
+                                updatePriceTag(container or slotFrame, price)
                             end
                         end
                     end
@@ -326,7 +321,6 @@ task.spawn(function()
             local tString = #theirItems > 0 and (table.concat(theirItems, " + ") .. " = " .. tostring(theirSum)) or "0"
 
             for label, _ in pairs(allTextLabels) do
-                -- Убрана проверка AbsolutePosition.X
                 if label.Parent and label.Visible then
                     local txt = tostring(label.Text)
                     if txt == "YOUR OFFER" or txt:match("^YOUR OFFER •") then 

@@ -109,7 +109,6 @@ task.spawn(function()
     end
 end)
 
--- === 2. ЦЕННИКИ НА ПРЕДМЕТАХ ===
 local function getPrice(rawName, rarity)
     if type(rawName) ~= "string" or rawName == "" then return nil end
     local name = cleanName(rawName)
@@ -130,32 +129,25 @@ local function getPrice(rawName, rarity)
     return nil
 end
 
--- Надежный поиск главного слота предмета
-local function getSlotFrame(label)
-    local current = label
+-- Универсальный поиск главного слота (исправляет съезды ценников)
+local function getTargetFrame(element)
+    local current = element
     for i = 1, 4 do
         if not current then break end
-        if current:FindFirstChild("Container") and current:IsA("GuiObject") then
-            return current
+        -- Ищем квадратный фрейм, в котором есть "Container"
+        if current:IsA("GuiObject") and current.AbsoluteSize.X < 250 and current.AbsoluteSize.Y < 250 then
+            if current:FindFirstChild("Container") or string.match(current.Name, "^NewItem") then
+                return current
+            end
         end
         current = current.Parent
     end
-    return nil
+    return element.Parent
 end
 
 local function updatePriceTag(element, price)
-    local targetFrame = getSlotFrame(element)
-    
-    if not targetFrame then
-        targetFrame = element.Parent and element.Parent.Parent
-    end
-
+    local targetFrame = getTargetFrame(element)
     if not targetFrame or not targetFrame:IsA("GuiObject") then return end
-
-    -- Защита от привязки к огромным контейнерам сетки
-    if targetFrame.AbsoluteSize.X > 250 or targetFrame.AbsoluteSize.Y > 250 then
-        targetFrame = element.Parent
-    end
 
     local tag = targetFrame:FindFirstChild("MM2_PriceTag")
     if not tag then
@@ -163,7 +155,6 @@ local function updatePriceTag(element, price)
         tag.Name = "MM2_PriceTag"
         tag.Size = UDim2.new(1, 0, 0, 18)
         
-        -- Идеальное центрирование в самом верху квадратного слота
         tag.Position = UDim2.new(0.5, 0, 0, 2)
         tag.AnchorPoint = Vector2.new(0.5, 0)
         
@@ -219,7 +210,6 @@ local function parseNumericPrice(val)
     return 0
 end
 
--- === 3. ЦИКЛ ОБНОВЛЕНИЯ ИНТЕРФЕЙСА ===
 local PlayerGui = LocalPlayer:WaitForChild("PlayerGui")
 local activeLabels = {}
 local allTextLabels = {}
@@ -255,8 +245,8 @@ task.spawn(function()
             
             local tradeWindow
             for _, gui in ipairs(PlayerGui:GetDescendants()) do
-                -- ФИКС: >= 0 спасает мобильные экраны, где окно висит на нулевой координате
-                if gui:IsA("Frame") and gui.Name == "Trade" and gui.Visible and gui.AbsolutePosition.X >= 0 then
+                -- Убрана проверка координат. Ищем строго по имени, видимости и наличию YourOffer
+                if gui:IsA("Frame") and gui.Name == "Trade" and gui.Visible and gui:FindFirstChild("YourOffer") then
                     tradeWindow = gui
                     break
                 end
@@ -266,8 +256,8 @@ task.spawn(function()
             local theirOfferFrame = tradeWindow and tradeWindow:FindFirstChild("TheirOffer")
 
             for el, _ in pairs(activeLabels) do
-                -- ФИКС: >= 0 для чтения элементов в мобильном трейде
-                if el.Parent and el.Visible and el.AbsolutePosition.X >= 0 then
+                -- Убрана проверка AbsolutePosition.X
+                if el.Parent and el.Visible then
                     local text = tostring(el.Text)
                     if text and #text > 0 and #text < 35 and text ~= "Loading" then
                         local cleanLower = getCleanNameLower(text)
@@ -318,7 +308,6 @@ task.spawn(function()
                                             end
                                         end
                                         
-                                        -- Вызов без костылей с overrideTarget
                                         updatePriceTag(el, price)
                                     end
                                 else
@@ -337,7 +326,8 @@ task.spawn(function()
             local tString = #theirItems > 0 and (table.concat(theirItems, " + ") .. " = " .. tostring(theirSum)) or "0"
 
             for label, _ in pairs(allTextLabels) do
-                if label.Parent and label.Visible and label.AbsolutePosition.X >= 0 then
+                -- Убрана проверка AbsolutePosition.X
+                if label.Parent and label.Visible then
                     local txt = tostring(label.Text)
                     if txt == "YOUR OFFER" or txt:match("^YOUR OFFER •") then 
                         local newTxt = "YOUR OFFER • " .. yString

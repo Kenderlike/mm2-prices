@@ -243,37 +243,31 @@ task.spawn(function()
             local theirItems = {}
             local processedCells = {}
             
-            -- 1. НАХОДИМ ОПОРНЫЕ ТОЧКИ ТРЕЙДА
+            -- 1. НАХОДИМ ТЕКСТЫ И СОХРАНЯЕМ НИКНЕЙМ
             local yoLabel, toLabel
+            local theirSuffix = ""
+            
             for label, _ in pairs(allTextLabels) do
                 if label.Parent and label.Visible then
                     local txt = tostring(label.Text)
-                    if txt == "YOUR OFFER" or txt:match("^YOUR OFFER •") then 
+                    if txt:match("^YOUR OFFER") then 
                         yoLabel = label
-                    elseif txt == "THEIR OFFER" or txt:match("^THEIR OFFER •") then 
+                    elseif txt:match("^THEIR OFFER") then 
                         toLabel = label
+                        -- Аккуратно вырезаем никнейм (всё, что в скобках в конце строки)
+                        local suffix = txt:match("(%s*%([^%)]+%))$")
+                        if suffix then theirSuffix = suffix end
                     end
                 end
             end
 
-            -- 2. ВЫЧИСЛЯЕМ ОБЩЕЕ ПРОСТРАНСТВО ОКНА ТРЕЙДА
-            local tradeWindow = nil
-            local tradeMidY = 0
-            
-            if yoLabel and toLabel then
-                tradeMidY = (yoLabel.AbsolutePosition.Y + toLabel.AbsolutePosition.Y) / 2
-                
-                local curr = yoLabel.Parent
-                while curr and curr.Parent and not curr:IsA("ScreenGui") do
-                    if toLabel:IsDescendantOf(curr) then
-                        tradeWindow = curr
-                        break
-                    end
-                    curr = curr.Parent
-                end
-            end
+            -- 2. СТРОИМ НЕВИДИМЫЕ ГРАНИЦЫ ОКНА ТРЕЙДА (Абсолютная геометрия)
+            local tradeActive = (yoLabel ~= nil and toLabel ~= nil)
+            local tradeMinX = tradeActive and (yoLabel.AbsolutePosition.X - 100) or 0
+            local tradeMaxX = tradeActive and (yoLabel.AbsolutePosition.X + 800) or 0
+            local tradeMidY = tradeActive and (toLabel.AbsolutePosition.Y) or 0
 
-            -- 3. СКАНИРОВАНИЕ ПРЕДМЕТОВ
+            -- 3. СЧИТАЕМ СКИНЫ ПО КООРДИНАТАМ
             for el, _ in pairs(activeLabels) do
                 if el.Parent and el.Visible then
                     local text = tostring(el.Text)
@@ -291,37 +285,46 @@ task.spawn(function()
                                 local slotFrame, container = findSlotData(el)
                                 
                                 if slotFrame and slotFrame.Visible then
-                                    -- Если предмет физически находится ВНУТРИ главного окна трейда
-                                    if tradeWindow and tradeMidY > 0 and slotFrame:IsDescendantOf(tradeWindow) then
-                                        if not processedCells[slotFrame] then
-                                            processedCells[slotFrame] = true
-                                            
-                                            local qty = 1
-                                            if container then
-                                                local amountLabel = container:FindFirstChild("Amount", true)
-                                                if amountLabel and amountLabel.Text and amountLabel.Text ~= ".." and amountLabel.Text ~= "" then
-                                                    local numStr = amountLabel.Text:match("%d+")
-                                                    if numStr then qty = tonumber(numStr) or 1 end
+                                    -- Если мы в трейде, проверяем, лежит ли скин в наших границах
+                                    if tradeActive then
+                                        local sx = slotFrame.AbsolutePosition.X
+                                        local sy = slotFrame.AbsolutePosition.Y
+                                        
+                                        -- Выравнивание по X (отсекаем левый инвентарь)
+                                        if sx >= tradeMinX and sx <= tradeMaxX then
+                                            -- Защита от мусора: скин должен быть ниже заголовка YOUR OFFER
+                                            if sy >= (yoLabel.AbsolutePosition.Y - 50) then
+                                                
+                                                if not processedCells[slotFrame] then
+                                                    processedCells[slotFrame] = true
+                                                    
+                                                    local qty = 1
+                                                    if container then
+                                                        local amountLabel = container:FindFirstChild("Amount", true)
+                                                        if amountLabel and amountLabel.Text and amountLabel.Text ~= ".." and amountLabel.Text ~= "" then
+                                                            local numStr = amountLabel.Text:match("%d+")
+                                                            if numStr then qty = tonumber(numStr) or 1 end
+                                                        end
+                                                    end
+                                                    
+                                                    local numPrice = parseNumericPrice(price)
+                                                    local priceStr = tostring(numPrice)
+                                                    local itemDisplay = priceStr .. (qty > 1 and ("("..qty..")") or "")
+                                                    
+                                                    -- Если скин физически выше текста THEIR OFFER - он твой
+                                                    if sy < tradeMidY then
+                                                        yourSum = yourSum + (numPrice * qty)
+                                                        table.insert(yourItems, itemDisplay)
+                                                    else
+                                                        theirSum = theirSum + (numPrice * qty)
+                                                        table.insert(theirItems, itemDisplay)
+                                                    end
                                                 end
-                                            end
-                                            
-                                            local numPrice = parseNumericPrice(price)
-                                            local priceStr = tostring(numPrice)
-                                            local itemDisplay = priceStr .. (qty > 1 and ("("..qty..")") or "")
-                                            
-                                            local slotY = slotFrame.AbsolutePosition.Y
-                                            
-                                            -- Геометрическое разделение: выше экватора - твое, ниже - чужое
-                                            if slotY < tradeMidY then
-                                                yourSum = yourSum + (numPrice * qty)
-                                                table.insert(yourItems, itemDisplay)
-                                            else
-                                                theirSum = theirSum + (numPrice * qty)
-                                                table.insert(theirItems, itemDisplay)
                                             end
                                         end
                                     end
                                     
+                                    -- Ценник вешаем в любом случае
                                     updatePriceTag(container or slotFrame, price)
                                 end
                             end
@@ -330,7 +333,7 @@ task.spawn(function()
                 end
             end
 
-            -- 4. ПРИНУДИТЕЛЬНОЕ ОБНОВЛЕНИЕ ВСЕХ СЛОЕВ ТЕКСТА (вкл. тени)
+            -- 4. ВПИСЫВАЕМ СУММУ И ВОЗВРАЩАЕМ НИКНЕЙМ НА МЕСТО
             table.sort(yourItems)
             table.sort(theirItems)
 
@@ -340,11 +343,12 @@ task.spawn(function()
             for label, _ in pairs(allTextLabels) do
                 if label.Parent and label.Visible then
                     local txt = tostring(label.Text)
-                    if txt == "YOUR OFFER" or txt:match("^YOUR OFFER •") then 
+                    if txt:match("^YOUR OFFER") then 
                         local newTxt = "YOUR OFFER • " .. yString
                         if label.Text ~= newTxt then label.Text = newTxt end
-                    elseif txt == "THEIR OFFER" or txt:match("^THEIR OFFER •") then 
-                        local newTxt = "THEIR OFFER • " .. tString
+                    elseif txt:match("^THEIR OFFER") then 
+                        -- Добавляем никнейм обратно!
+                        local newTxt = "THEIR OFFER • " .. tString .. theirSuffix
                         if label.Text ~= newTxt then label.Text = newTxt end
                     end
                 end

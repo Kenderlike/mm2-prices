@@ -133,37 +133,38 @@ end
 local function updatePriceTag(element, price, overrideTarget)
     local targetFrame = overrideTarget
     
-    -- Если overrideTarget не указан (для инвентаря), ищем стандартную карточку
+    -- Надежный поиск карточки предмета (без ложных срабатываний на телефонах)
     if not targetFrame then
-        local parentFrame = element.Parent
-        if not parentFrame then return end
+        local current = element
+        if current.Parent and current.Parent.Name == "Container" then
+            targetFrame = current.Parent.Parent
+        else
+            targetFrame = current.Parent
+        end
         
-        targetFrame = parentFrame.Parent
-        if not targetFrame or not targetFrame:IsA("GuiObject") or targetFrame.AbsoluteSize.X > 350 or targetFrame.AbsoluteSize.Y > 350 then
-            targetFrame = parentFrame 
+        -- Защита от привязки к интерфейсу окна трейда (если карточка больше 150px)
+        if targetFrame and targetFrame:IsA("GuiObject") and (targetFrame.AbsoluteSize.X > 150 or targetFrame.AbsoluteSize.Y > 150) then
+            targetFrame = element.Parent
         end
     end
+
+    if not targetFrame or not targetFrame:IsA("GuiObject") then return end
 
     local tag = targetFrame:FindFirstChild("MM2_PriceTag")
     if not tag then
         tag = Instance.new("TextLabel")
         tag.Name = "MM2_PriceTag"
-        tag.Size = UDim2.new(1, 0, 0, 20)
+        tag.Size = UDim2.new(1, 0, 0, 16)
         
-        -- Если мы крепим на Icon в трейде, центрируем плашку
-        if overrideTarget then
-            tag.Position = UDim2.new(0.5, 0, 0, 2)
-            tag.AnchorPoint = Vector2.new(0.5, 0)
-        else
-            tag.Position = UDim2.new(0, 0, 0, 2)
-            tag.AnchorPoint = Vector2.new(0, 0)
-        end
+        -- Привязка строго по центру вверху фрейма
+        tag.Position = UDim2.new(0.5, 0, 0, 2)
+        tag.AnchorPoint = Vector2.new(0.5, 0)
         
         tag.TextXAlignment = Enum.TextXAlignment.Center
         tag.TextYAlignment = Enum.TextYAlignment.Top
         tag.BackgroundTransparency = 1 
-        tag.TextStrokeTransparency = 0 
-        tag.TextSize = 16
+        tag.TextStrokeTransparency = 0.4 -- Тень для лучшей читаемости
+        tag.TextSize = 13 -- Уменьшенный шрифт для мобилок
         tag.Font = Enum.Font.GothamBlack
         tag.ZIndex = 99999
         tag.Visible = true
@@ -327,7 +328,7 @@ task.spawn(function()
             table.sort(yourItems)
             table.sort(theirItems)
 
-            -- Формирование уравнения с пробелами (например: 35 + x2 T1 = ...)
+            -- Формирование уравнения с пробелами (например: 35 + 50(2) = ...)
             local yString = #yourItems > 0 and (table.concat(yourItems, " + ") .. " = " .. tostring(yourSum)) or "0"
             local tString = #theirItems > 0 and (table.concat(theirItems, " + ") .. " = " .. tostring(theirSum)) or "0"
 

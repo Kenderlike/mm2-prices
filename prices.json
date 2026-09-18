@@ -997,7 +997,8 @@
         },
         "Laser": {
             "godly_chroma": "22",
-            "vintage": "8"
+            "vintage": "8",
+            "rare": "Coming Soon!"
         },
         "Hallow": {
             "godly_chroma": "20"
@@ -1377,25 +1378,31 @@
         },
         "Ghost": {
             "vintage": "8",
+            "uncommon": "Coming Soon!",
             "unknown": "untradable"
         },
         "America": {
             "vintage": "7"
         },
         "Prince": {
-            "vintage": "6"
+            "vintage": "6",
+            "rare": "Coming Soon!"
         },
         "Shadow": {
-            "vintage": "6"
+            "vintage": "6",
+            "legendary": "Coming Soon!"
         },
         "Phaser": {
-            "vintage": "5"
+            "vintage": "5",
+            "rare": "Coming Soon!"
         },
         "Cowboy": {
-            "vintage": "4"
+            "vintage": "4",
+            "rare": "Coming Soon!"
         },
         "Golden": {
             "vintage": "4",
+            "legendary": "Coming Soon!",
             "unknown": "untradable"
         },
         "Splitter": {
